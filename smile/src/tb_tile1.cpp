@@ -55,6 +55,7 @@ private:
 
 namespace {
 
+/* persistent debugger state (threads, traps, exit bookkeeping) */
 struct DebuggerState {
   Tile1& tile;
   DramMemoryPort& dram_port;
@@ -100,6 +101,7 @@ struct DebuggerState {
   }
 };
 
+/* per-cycle execution metadata returned by execute_cycle() */
 struct CycleInfo {
   int thread = -1;
   uint32_t begin_pc = 0;
@@ -112,6 +114,7 @@ struct CycleInfo {
   bool program_exited = false;
 };
 
+/* check whether any thread context is still marked active */
 static bool has_active_threads(const DebuggerState& state) {
   return state.threads[0].active || state.threads[1].active;
 }
@@ -122,6 +125,7 @@ static std::string to_lower(std::string value) {
   return value;
 }
 
+/* attempt to parse user text into uint32_t, reject malformed input */
 static bool parse_u32(const std::string& text, uint32_t* value) {
   try {
     size_t idx = 0;
@@ -136,12 +140,14 @@ static bool parse_u32(const std::string& text, uint32_t* value) {
   }
 }
 
+/* helper to generate 8-digit hex strings */
 static std::string hex32(uint32_t value) {
   std::ostringstream oss;
   oss << std::hex << std::setw(8) << std::setfill('0') << value;
   return oss.str();
 }
 
+/* verbose dump of PC, cause, regs, and memory when ebreak fires */
 static void print_breakpoint_snapshot(DebuggerState& state, int thread_index,
                                       uint32_t pc, uint32_t mcause) {
   std::ios_base::fmtflags old_flags = std::cout.flags();
@@ -176,6 +182,7 @@ static void print_breakpoint_snapshot(DebuggerState& state, int thread_index,
   std::cout.flags(old_flags);
 }
 
+/* lightweight trace line describing current cycle, thread, and instruction */
 static void print_cycle_trace(const DebuggerState& state, const CycleInfo& info) {
   std::ios_base::fmtflags old_flags = std::cout.flags();
   char old_fill = std::cout.fill('0');
@@ -190,6 +197,7 @@ static void print_cycle_trace(const DebuggerState& state, const CycleInfo& info)
   std::cout.flags(old_flags);
 }
 
+/* dump architectural registers for both threads in hex */
 static void print_registers(const DebuggerState& state) {
   std::ios_base::fmtflags old_flags = std::cout.flags();
   char old_fill = std::cout.fill('0');
@@ -216,6 +224,7 @@ static void print_registers(const DebuggerState& state) {
   std::cout.flags(old_flags);
 }
 
+/* raw memory viewer that prints N consecutive words */
 static void dump_memory(DramMemoryPort& dram_port, uint32_t addr, std::size_t count) {
   std::ios_base::fmtflags old_flags = std::cout.flags();
   char old_fill = std::cout.fill('0');
@@ -330,7 +339,7 @@ static void auto_run(DebuggerState& state, int max_cycles) {
     }
   }
 }
-/* debugger REPL loop*/
+/* interactive command loop for stepping, tracing, and breakpoints */
 static void run_debugger(DebuggerState& state) {
   std::cout << "Entering Tile1 debugger. Type 'help' for commands." << std::endl;
   std::string line;
