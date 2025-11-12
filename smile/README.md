@@ -58,11 +58,12 @@ We should then be able to run `prog.bin` as follows
 # Run compiled (as prog.bin) smurf_debug.c
 ./build/smile/tb_tile1 -prog=./smile/progs/prog.bin -load_addr=0x0 -start_pc=0x0
 # And debug the program as needed, for example
-smile> step 3
-smile> regs
-smile> mem 0x100 4
-smile> break 0x14
-smile> cont
-smile> quit
+smile> help        # lists commands
+smile> step 3      # advance 3 cycles
+smile> regs        # dump regs and PCs
+smile> mem 0x100 4 # dump 4 mem words at addr 0x100
+smile> break 0x14  # set breakpoint at PC 0x14
+smile> cont        # run until breakpoint or exit
+smile> quit        # exit debugger
 ```
-where `start_pc` 
+ 
