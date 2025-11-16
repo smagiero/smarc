@@ -3,6 +3,10 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 2 2025
 
+/*
+Just to help us exercise the debugger REPL.
+*/
+
 #include <stdint.h>
 
 #define SCRATCH0_ADDR 0x0100u

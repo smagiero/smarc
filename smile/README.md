@@ -61,7 +61,7 @@ We should then be able to run `prog.bin` as follows
 smile> help        # lists commands
 smile> step 3      # advance 3 cycles
 smile> regs        # dump regs and PCs
-smile> mem 0x100 4 # dump 4 mem words at addr 0x100
+smile> mem 0x100 4 # dump 4 mem words starting at addr 0x100
 smile> break 0x14  # set breakpoint at PC 0x14
 smile> cont        # run until breakpoint or exit
 smile> quit        # exit debugger

@@ -459,7 +459,15 @@ namespace
       else if (cmd == "break" || cmd == "br") {
         std::string addr_token;
         if (!(iss >> addr_token)) {
-          std::cout << "Usage: break <addr>" << std::endl;
+          if (state.breakpoints.empty()) {
+            std::cout << "No breakpoints set" << std::endl;
+          }
+          else {
+            std::cout << "Breakpoints:" << std::endl;
+            for (uint32_t addr : state.breakpoints) {
+              std::cout << "  0x" << hex32(addr) << std::endl;
+            }
+          }
           continue;
         }
         uint32_t addr = 0;
@@ -476,6 +484,32 @@ namespace
           std::cout << "Breakpoint already exists at 0x"
                     << hex32(addr) << std::endl;
         }
+      }
+      else if (cmd == "delete" || cmd == "del") {
+        std::string addr_token;
+        if (!(iss >> addr_token)) {
+          std::cout << "Usage: delete <addr>" << std::endl;
+          continue;
+        }
+        uint32_t addr = 0;
+        if (!parse_u32(addr_token, &addr)) {
+          std::cout << "Invalid address" << std::endl;
+          continue;
+        }
+        auto it = std::find(state.breakpoints.begin(), state.breakpoints.end(), addr);
+        if (it != state.breakpoints.end()) {
+          state.breakpoints.erase(it);
+          std::cout << "Breakpoint removed at 0x" << hex32(addr) << std::endl;
+        }
+        else {
+          std::cout << "No breakpoint at 0x" << hex32(addr) << std::endl;
+        }
+      }
+      else if (cmd == "clear") {
+        if (!state.breakpoints.empty()) {
+          state.breakpoints.clear();
+        }
+        std::cout << "All breakpoints cleared" << std::endl;
       }
       else if (cmd == "regs") {
         print_registers(state);
@@ -536,6 +570,8 @@ namespace
                   << "  step [N]      - advance N cycles (default 1)\n"
                   << "  cont          - run until breakpoint or exit\n"
                   << "  break <addr>  - set breakpoint at PC address\n"
+                  << "  delete <addr> - remove breakpoint at PC address\n"
+                  << "  clear         - remove all breakpoints\n"
                   << "  regs          - dump all registers and PCs\n"
                   << "  mem <addr> [count] - dump memory words\n"
                   << "  trace [on|off]- toggle per-cycle tracing\n"
