@@ -4,6 +4,8 @@
 // Sebastian Claudiusz Magierowski Nov 2 2025
 /*
 For diagnosing tiles that don't finish their program with expected exit() call.
+Note: “Diagnostics wants DramMemoryPort but only tb_tile1.cpp knows it” problem 
+and fixed it by using MemoryPort& in Diagnostics.hpp
 */
 #pragma once
 #include "Tile1.hpp" // for MemoryPort
