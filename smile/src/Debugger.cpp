@@ -389,8 +389,10 @@ void auto_run(DebuggerState& state, int max_cycles) {
   }
 }
 
-void run_debugger(DebuggerState& state) {
-  load_breakpoints_from_file(state); // e.g. .smile_dbg 
+void run_debugger(DebuggerState& state, bool ignore_bpfile) {
+  if (!ignore_bpfile) {
+    load_breakpoints_from_file(state);
+  }
   std::cout << "Entering Tile1 debugger. Type 'help' for commands." << std::endl;
   std::string line;
 

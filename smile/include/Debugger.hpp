@@ -36,7 +36,6 @@ struct DebuggerState {
 };
 
 void auto_run(DebuggerState &state, int max_cycles);
-void run_debugger(DebuggerState &state);
+void run_debugger(DebuggerState &state, bool ignore_bpfile); // accept ignore_bpfile CLI flag
 
 } // namespace smile
-

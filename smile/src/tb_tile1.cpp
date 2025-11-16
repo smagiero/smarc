@@ -28,6 +28,8 @@ StringParameter(prog, "", "Path to flat binary file (.bin) to load");
 IntParameter(load_addr, 0x0, "Physical load address for the flat binary");
 IntParameter(start_pc, 0x0, "Initial PC (set core's PC before run)");
 IntParameter(steps, 0, "Cycles to auto-run; <=0 enters interactive debugger");
+BoolParameter(ignore_bpfile, false,
+  "Do not load .smile_dbg breakpoint file on startup");
 
 // Simple adapter/shim class that exposes smicro's Dram as a MemoryPort for Tile1.
 class DramMemoryPort : public MemoryPort {
@@ -123,7 +125,7 @@ int main(int argc, char* argv[]) {
   if (max_cycles > 0) {
     smile::auto_run(dbg, max_cycles);
   } else {
-    smile::run_debugger(dbg);
+    smile::run_debugger(dbg, ignore_bpfile);
   }
 
   // **************
@@ -150,4 +152,3 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
-
