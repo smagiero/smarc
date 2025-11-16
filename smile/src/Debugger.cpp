@@ -1,3 +1,8 @@
+// **********************************************************************
+// smile/src/util/Debugger.cpp
+// **********************************************************************
+// Sebastian Claudiusz Magierowski Nov 16 2025 
+
 #include "Debugger.hpp"
 
 #include <cascade/SimGlobals.hpp>

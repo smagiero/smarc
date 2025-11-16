@@ -1,3 +1,10 @@
+// **********************************************************************
+// smile/include/Debugger.hpp
+// **********************************************************************
+// Sebastian Claudiusz Magierowski Nov 16 2025
+/*
+Debugger REPLfor Tile1 simulator.
+*/
 #pragma once
 
 #include "Tile1.hpp"
