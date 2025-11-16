@@ -156,22 +156,30 @@ namespace
   }
 
   /* helper to generate 8-digit hex strings */
-  static std::string hex32(uint32_t value) {
-    std::ostringstream oss;
-    oss << std::hex << std::setw(8) << std::setfill('0') << value;
-    return oss.str();
-  }
+static std::string hex32(uint32_t value) {
+  std::ostringstream oss;
+  oss << std::hex << std::setw(8) << std::setfill('0') << value;
+  return oss.str();
+}
+
+// simple ANSI color codes for terminal highlighting
+static constexpr const char* COLOR_RESET = "\033[0m";
+static constexpr const char* COLOR_BP    = "\033[33m"; // yellow for breakpoints
+static constexpr const char* COLOR_EXIT  = "\033[32m"; // green for clean exits
+static constexpr const char* COLOR_ERR   = "\033[31m"; // red for invalid usage/errors
+static constexpr const char* COLOR_HINT  = "\033[36m"; // cyan for help text
 
   /* verbose dump of PC, cause, regs, and memory when ebreak fires */
   static void print_breakpoint_snapshot(DebuggerState &state, int thread_index, uint32_t pc, uint32_t mcause) {
     std::ios_base::fmtflags old_flags = std::cout.flags();
     char old_fill = std::cout.fill('0');
 
-    std::cout << "[T" << thread_index << "] breakpoint pc=0x"
-              << std::hex << std::setw(8) << pc
-              << " mcause=0x" << std::setw(8) << mcause
-              << " mstatus=0x" << std::setw(8) << state.tile.mstatus()
-              << std::dec << std::endl;
+  std::cout << COLOR_BP
+            << "[BP][T" << thread_index << "] breakpoint pc=0x"
+            << std::hex << std::setw(8) << pc
+            << " mcause=0x" << std::setw(8) << mcause
+            << " mstatus=0x" << std::setw(8) << state.tile.mstatus()
+            << std::dec << COLOR_RESET << std::endl;
 
     std::cout << "  regs:";
     for (int reg = 1; reg <= 7; ++reg)
@@ -249,7 +257,7 @@ namespace
 /* dump registers for one specified thread */
 static void print_registers_for_thread(const DebuggerState &state, int t) {
   if (t < 0 || t > 1) {
-    std::cout << "Invalid thread index (expected 0 or 1)" << std::endl;
+    std::cout << COLOR_ERR << "Invalid thread index (expected 0 or 1)" << COLOR_RESET << std::endl;
     return;
   }
 
@@ -279,11 +287,11 @@ static void print_registers_for_thread(const DebuggerState &state, int t) {
 /* dump a single register of a thread (plus context) */
 static void print_single_register(const DebuggerState &state, int t, int r) {
   if (t < 0 || t > 1) {
-    std::cout << "Invalid thread index (expected 0 or 1)" << std::endl;
+    std::cout << COLOR_ERR << "Invalid thread index (expected 0 or 1)" << COLOR_RESET << std::endl;
     return;
   }
   if (r < 0 || r >= 32) {
-    std::cout << "Invalid register index (expected 0-31)" << std::endl;
+    std::cout << COLOR_ERR << "Invalid register index (expected 0-31)" << COLOR_RESET << std::endl;
     return;
   }
 
@@ -372,10 +380,13 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
 
     // ---- if your program exited normally (syscall 93) ----
     if (state.tile.has_exited()) {
-      if (!state.program_exited) {
-        state.program_exit_code = state.tile.exit_code();
-        std::cout << "Program exited with code " << state.program_exit_code << std::endl;
-      }
+    if (!state.program_exited) {
+      state.program_exit_code = state.tile.exit_code();
+      std::cout << COLOR_EXIT
+                << "[EXIT] Program exited with code "
+                << state.program_exit_code
+                << COLOR_RESET << std::endl;
+    }
       state.program_exited = true;
       state.threads[0].active = false;
       state.threads[1].active = false;
@@ -455,7 +466,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
         if (iss >> count_token)
         { // get 2nd word of i/p (possibly a step count)
           if (!parse_u32(count_token, &count) || count == 0) {
-            std::cout << "Invalid step count" << std::endl;
+            std::cout << COLOR_ERR << "Invalid step count" << COLOR_RESET << std::endl;
             continue;
           }
         }
@@ -474,8 +485,10 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
           }
           if (info.executed_breakpoint_instr)
           { // pause on ebreak
-            std::cout << "Software breakpoint executed at 0x"
-                      << hex32(info.begin_pc) << std::endl;
+            std::cout << COLOR_BP
+                      << "[BP] Software breakpoint executed at 0x"
+                      << hex32(info.begin_pc)
+                      << COLOR_RESET << std::endl;
             break;
           }
           if (info.program_exited)
@@ -489,8 +502,10 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
           CycleInfo info = execute_cycle(state, true);
           if (!info.executed) {
             if (info.user_breakpoint_hit) {
-              std::cout << "Hit breakpoint at 0x"
-                        << hex32(info.begin_pc) << std::endl;
+              std::cout << COLOR_BP
+                        << "[BP] Hit breakpoint at 0x"
+                        << hex32(info.begin_pc)
+                        << COLOR_RESET << std::endl;
               print_breakpoint_snapshot(state, info.thread, info.begin_pc, info.mcause);
             }
             break;
@@ -503,8 +518,10 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
             break;
           }
           if (info.executed_breakpoint_instr) {
-            std::cout << "Software breakpoint executed at 0x"
-                      << hex32(info.begin_pc) << std::endl;
+            std::cout << COLOR_BP
+                      << "[BP] Software breakpoint executed at 0x"
+                      << hex32(info.begin_pc)
+                      << COLOR_RESET << std::endl;
             break;
           }
           if (info.program_exited) {
@@ -528,7 +545,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
         }
         uint32_t addr = 0;
         if (!parse_u32(addr_token, &addr)) {
-          std::cout << "Invalid address" << std::endl;
+          std::cout << COLOR_ERR << "Invalid address" << COLOR_RESET << std::endl;
           continue;
         }
         if (std::find(state.breakpoints.begin(), state.breakpoints.end(), addr) == state.breakpoints.end()) {
@@ -549,7 +566,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
         }
         uint32_t addr = 0;
         if (!parse_u32(addr_token, &addr)) {
-          std::cout << "Invalid address" << std::endl;
+          std::cout << COLOR_ERR << "Invalid address" << COLOR_RESET << std::endl;
           continue;
         }
         auto it = std::find(state.breakpoints.begin(), state.breakpoints.end(), addr);
@@ -577,7 +594,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
           if (colon == std::string::npos) {  // dump all registers for one thread
             uint32_t thread_idx = 0;
             if (!parse_u32(token, &thread_idx)) {
-              std::cout << "Invalid thread index" << std::endl;
+              std::cout << COLOR_ERR << "Invalid thread index" << COLOR_RESET << std::endl;
               continue;
             }
             print_registers_for_thread(state, static_cast<int>(thread_idx));
@@ -588,11 +605,11 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
             uint32_t thread_idx = 0;
             uint32_t reg_idx = 0;
             if (!parse_u32(t_str, &thread_idx)) {
-              std::cout << "Invalid thread index" << std::endl;
+              std::cout << COLOR_ERR << "Invalid thread index" << COLOR_RESET << std::endl;
               continue;
             }
             if (!parse_u32(reg_str, &reg_idx)) {
-              std::cout << "Invalid register index" << std::endl;
+              std::cout << COLOR_ERR << "Invalid register index" << COLOR_RESET << std::endl;
               continue;
             }
             print_single_register(state, static_cast<int>(thread_idx),
@@ -608,7 +625,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
         }
         uint32_t addr = 0;
         if (!parse_u32(addr_token, &addr)) {
-          std::cout << "Invalid address" << std::endl;
+          std::cout << COLOR_ERR << "Invalid address" << COLOR_RESET << std::endl;
           continue;
         }
         std::string count_token;
@@ -616,7 +633,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
         if (iss >> count_token) {
           uint32_t parsed = 0;
           if (!parse_u32(count_token, &parsed)) {
-            std::cout << "Invalid count" << std::endl;
+            std::cout << COLOR_ERR << "Invalid count" << COLOR_RESET << std::endl;
             continue;
           }
           count = static_cast<std::size_t>(parsed);
@@ -652,7 +669,7 @@ static void dump_memory(DramMemoryPort &dram_port, uint32_t addr, std::size_t co
         break;
       }
       else if (cmd == "help") {
-        std::cout << "Commands:\n"
+        std::cout << COLOR_HINT << "Commands:" << COLOR_RESET << "\n"
                   << "  step [N]           - advance N cycles (default 1)\n"
                   << "  cont               - run until breakpoint or exit\n"
                   << "  break <addr>       - set breakpoint at PC address\n"
