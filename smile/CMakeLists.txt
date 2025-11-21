@@ -16,6 +16,7 @@ target_link_libraries(tile1
 )
 
 add_executable(tb_tile1
+  src/DemoAddAccel.cpp
   src/Debugger.cpp
   src/tb_tile1.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../smicro/src/Dram.cpp
