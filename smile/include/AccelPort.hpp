@@ -36,4 +36,22 @@ public:
   // Optional: response side, if/when you want rd results later.
   virtual bool has_response() const { return false; }
   virtual uint32_t read_response() { return 0; }
+
+  // --------------------------------------------------------------------
+  // Memory access API (RoCC-style, simplified as blocking operations).
+  //
+  // These allow an accelerator to behave like a first-class memory client,
+  // similar to a RoCC accelerator talking to L1. In this first version,
+  // the calls are blocking and return immediately, but conceptually they
+  // wrap a request/response handshake against the memory system.
+  //
+  // Accelerators that need memory should override these and route the
+  // calls to an attached MemoryPort (e.g., DRAM or a future cache).
+  // --------------------------------------------------------------------
+  virtual uint32_t mem_load32(uint32_t /*addr*/) {
+    return 0;
+  }
+
+  virtual void mem_store32(uint32_t /*addr*/, uint32_t /*data*/) {
+  }
 };

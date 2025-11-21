@@ -58,6 +58,8 @@ private:
 /* A basic accelerator on issue it logs and returns rs1 + rs2 */
 class LoggingAccelPort : public AccelPort {
 public:
+  explicit LoggingAccelPort(MemoryPort& mem) : mem_(mem) {}
+
   void issue(uint32_t raw_inst,
              uint32_t pc,
              uint32_t rs1_val,
@@ -88,7 +90,16 @@ public:
     return resp_;
   }
 
+  uint32_t mem_load32(uint32_t addr) override {
+    return mem_.read32(addr);
+  }
+
+  void mem_store32(uint32_t addr, uint32_t data) override {
+    mem_.write32(addr, data);
+  }
+
 private:
+  MemoryPort& mem_;
   bool has_resp_ = false;
   uint32_t resp_ = 0;
 };
@@ -107,7 +118,7 @@ int main(int argc, char* argv[]) {
   Tile1 tile("tile1");
   Dram dram("dram", 0);
   DramMemoryPort dram_port(dram);
-  LoggingAccelPort accel_port;
+  LoggingAccelPort accel_port(dram_port);
   tile.attach_memory(&dram_port);
   tile.attach_accelerator(&accel_port); // attach accelerator (attach_accelerator in Tile1.hpp)
   dram.s_req.wireToZero();
