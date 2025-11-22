@@ -1,19 +1,19 @@
 // **********************************************************************
-// smile/src/DemoAddAccel.cpp
+// smile/src/AccelDemoAdd.cpp
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 21 2025
 
 // Demo accelerator implementation used by tb_tile1.
 
-#include "DemoAddAccel.hpp"
+#include "AccelDemoAdd.hpp"
 #include "Tile1.hpp"
 
 #include <iomanip>
 #include <iostream>
 
-DemoAddAccel::DemoAddAccel(MemoryPort& mem) : mem_(mem) {}
+AccelDemoAdd::AccelDemoAdd(MemoryPort& mem) : mem_(mem) {}
 
-void DemoAddAccel::issue(uint32_t raw_inst,
+void AccelDemoAdd::issue(uint32_t raw_inst,
                          uint32_t pc,
                          uint32_t rs1_val,
                          uint32_t rs2_val) {
@@ -34,19 +34,19 @@ void DemoAddAccel::issue(uint32_t raw_inst,
   has_resp_ = true;
 }
 
-bool DemoAddAccel::has_response() const {
+bool AccelDemoAdd::has_response() const {
   return has_resp_;
 }
 
-uint32_t DemoAddAccel::read_response() {
+uint32_t AccelDemoAdd::read_response() {
   has_resp_ = false;
   return resp_;
 }
 
-uint32_t DemoAddAccel::mem_load32(uint32_t addr) {
+uint32_t AccelDemoAdd::mem_load32(uint32_t addr) {
   return mem_.read32(addr);
 }
 
-void DemoAddAccel::mem_store32(uint32_t addr, uint32_t data) {
+void AccelDemoAdd::mem_store32(uint32_t addr, uint32_t data) {
   mem_.write32(addr, data);
 }

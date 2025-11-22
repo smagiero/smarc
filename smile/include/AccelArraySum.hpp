@@ -1,5 +1,5 @@
 // **********************************************************************
-// smile/include/ArraySumAccel.hpp
+// smile/include/AccelArraySum.hpp
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 22 2025
 /*
@@ -15,11 +15,11 @@ and exposes the blocking load/store API so future accelerators can reuse it
 
 class MemoryPort;
 
-// ArraySumAccel implements the AccelPort protocol by interpreting CUSTOM-0
+// AccelArraySum implements the AccelPort protocol by interpreting CUSTOM-0
 // instructions as "sum an array of 32-bit words from memory".
-class ArraySumAccel : public AccelPort {
+class AccelArraySum : public AccelPort {
 public:
-  explicit ArraySumAccel(MemoryPort& mem);
+  explicit AccelArraySum(MemoryPort& mem);
 
   // Command path: CUSTOM-0 request from Tile1.
   void issue(uint32_t raw_inst,

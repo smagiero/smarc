@@ -14,7 +14,7 @@ Testbench for a RV tile.
 #include "util/FlatBinLoader.hpp"
 #include "../../smicro/src/Dram.hpp"
 #include "AccelPort.hpp"
-#include "ArraySumAccel.hpp"
+#include "AccelArraySum.hpp"
 
 #include <cascade/Clock.hpp>
 #include <cascade/SimDefs.hpp>
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
   Tile1 tile("tile1");
   Dram dram("dram", 0);
   DramMemoryPort dram_port(dram);
-  ArraySumAccel accel_port(dram_port);  // array-sum accelerator, backed by dram_port for mem ops
+  AccelArraySum accel_port(dram_port);  // array-sum accelerator, backed by dram_port for mem ops
   tile.attach_memory(&dram_port);
   tile.attach_accelerator(&accel_port); // attach accelerator (attach_accelerator in Tile1.hpp)
   dram.s_req.wireToZero();

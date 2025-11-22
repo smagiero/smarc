@@ -1,5 +1,5 @@
 // **********************************************************************
-// smile/src/ArraySumAccel.cpp
+// smile/src/AccelArraySum.cpp
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 22 2025
 //
@@ -9,17 +9,17 @@
 //   rs2 = length in 32-bit elements
 //   rd  = destination for the sum
 
-#include "ArraySumAccel.hpp"
+#include "AccelArraySum.hpp"
 #include "Tile1.hpp"
 
 #include <iomanip>
 #include <iostream>
 
-ArraySumAccel::ArraySumAccel(MemoryPort& mem)
+AccelArraySum::AccelArraySum(MemoryPort& mem)
   : mem_(mem) {
 }
 
-void ArraySumAccel::issue(uint32_t raw_inst,
+void AccelArraySum::issue(uint32_t raw_inst,
                           uint32_t pc,
                           uint32_t rs1_val,
                           uint32_t rs2_val) {
@@ -50,19 +50,19 @@ void ArraySumAccel::issue(uint32_t raw_inst,
   has_resp_ = true;
 }
 
-bool ArraySumAccel::has_response() const {
+bool AccelArraySum::has_response() const {
   return has_resp_;
 }
 
-uint32_t ArraySumAccel::read_response() {
+uint32_t AccelArraySum::read_response() {
   has_resp_ = false;
   return resp_;
 }
 
-uint32_t ArraySumAccel::mem_load32(uint32_t addr) {
+uint32_t AccelArraySum::mem_load32(uint32_t addr) {
   return mem_.read32(addr);
 }
 
-void ArraySumAccel::mem_store32(uint32_t addr, uint32_t data) {
+void AccelArraySum::mem_store32(uint32_t addr, uint32_t data) {
   mem_.write32(addr, data);
 }

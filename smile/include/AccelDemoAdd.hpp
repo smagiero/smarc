@@ -1,5 +1,5 @@
 // **********************************************************************
-// smile/include/DemoAddAccel.hpp
+// smile/include/AccelDemoAdd.hpp
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 21 2025
 
@@ -11,9 +11,9 @@
 
 class MemoryPort;
 
-class DemoAddAccel : public AccelPort {
+class AccelDemoAdd : public AccelPort {
 public:
-  explicit DemoAddAccel(MemoryPort& mem);
+  explicit AccelDemoAdd(MemoryPort& mem);
 
   void issue(uint32_t raw_inst,
              uint32_t pc,
