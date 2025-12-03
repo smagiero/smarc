@@ -24,7 +24,8 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
 {
   g_soc = this;
   // ---- Allocate blocks ----
-  core_   = new RvCore("core");
+  // core_   = new RvCore("core");
+  core_   = new Tile1Core("core");
   tester_ = new MemTester("tester");
   l1_     = new L1("l1");
   l2_     = new L2("l2");
@@ -35,24 +36,48 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   // ---- Clocking ----
   core_->clk << clk; tester_->clk << clk; l1_->clk << clk; l2_->clk << clk; dram_->clk << clk; mem_->clk << clk; accel_->clk << clk;
 
-  // ---- Smoke-test wiring: bypass caches/accel; wire core <-> DRAM directly ----
+  // // ---- Smoke-test wiring: bypass caches/accel; wire core <-> DRAM directly ----
+  // // Core/TestMaster <-> MemCtrl
+  // if (use_test_driver_) {
+  //   // Disable core ports
+  //   core_->m_req.sendToBitBucket();                  //   core -> bucket      | 
+  //   core_->m_resp.wireToZero();                      //   core <- 0           | use
+  //   // Enable tester                                                          |
+  //   mem_->in_core_req   << tester_->m_req;           // tester -> mem ctrl    | tester (not core)
+  //   tester_->m_resp     << mem_->out_core_resp;      // tester <- mem ctrl    |
+  // } else {
+  //   // Disable tester ports
+  //   tester_->m_req.sendToBitBucket();                // tester -> bucket      |
+  //   tester_->m_resp.wireToZero();                    // tester <- 0           | use
+  //   // Enable core                                                            |
+  //   mem_->in_core_req   << core_->m_req;             //   core -> mem ctrl    | core (not tester)
+  //   core_->m_resp       << mem_->out_core_resp;      //   core <- mem ctrl    |
+  // }
+  
+  // ---- Connect Tile1Core directly to DRAM via its internal MemoryPort shim ----
+  core_->attach_dram(dram_); // let Tile1Core know which DRAM to talk to
+
+  // ---- Smoke-test wiring: bypass caches/accel; wire core & tester ----
   // Core/TestMaster <-> MemCtrl
   if (use_test_driver_) {
-    // Disable core ports
-    core_->m_req.sendToBitBucket();                  //   core -> bucket      | 
-    core_->m_resp.wireToZero();                      //   core <- 0           | use
-    // Enable tester                                                          |
-    mem_->in_core_req   << tester_->m_req;           // tester -> mem ctrl    | tester (not core)
-    tester_->m_resp     << mem_->out_core_resp;      // tester <- mem ctrl    |
+    // Disable core ports when tester is driving MemCtrl
+    core_->m_req.sendToBitBucket();
+    core_->m_resp.wireToZero();
+    // Tester -> MemCtrl
+    mem_->in_core_req   << tester_->m_req;
+    tester_->m_resp     << mem_->out_core_resp;
   } else {
-    // Disable tester ports
-    tester_->m_req.sendToBitBucket();                // tester -> bucket      |
-    tester_->m_resp.wireToZero();                    // tester <- 0           | use
-    // Enable core                                                            |
-    mem_->in_core_req   << core_->m_req;             //   core -> mem ctrl    | core (not tester)
-    core_->m_resp       << mem_->out_core_resp;      //   core <- mem ctrl    |
+    // No tester: neutralize its ports
+    tester_->m_req.sendToBitBucket();
+    tester_->m_resp.wireToZero();
+    // For now, Tile1Core talks directly to DRAM (via attach_dram),
+    // so we do not connect it to MemCtrl's core-side ports.
+    core_->m_req.sendToBitBucket();        //   core -> bucket
+    core_->m_resp.wireToZero();            //   core <- 0
+    mem_->in_core_req.wireToZero();        //      0 -> mem ctrl input: seen as permanently empty by MemCtrl
+    mem_->out_core_resp.sendToBitBucket(); // bucket <- mem ctrl output: any responses are discarded
   }
-  
+
   // MemCtrl <-> DRAM (DRAM is zero-latency storage) 
   dram_->s_req        << mem_->s_req;                //           mem ctrl -> dram
   mem_->s_resp        << dram_->s_resp;              //           mem ctrl <- dram

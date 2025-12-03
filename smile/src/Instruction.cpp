@@ -3,8 +3,8 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Oct 11 2025
 /* 
-Allows you to inspect instructions symbolically (e.g., decoded.category, decoded.r.rs1, decoded.i.imm, etc.)
-without need for bit-twiddling.
+A RV instruction decoder.  Allows you to inspect instructions symbolically 
+(e.g., decoded.category, decoded.r.rs1, decoded.i.imm, etc.) without need for bit-twiddling.
 */
 
 #include "Instruction.hpp"

@@ -2,6 +2,7 @@
 file(GLOB SMICRO_BASE_SRCS
   src/SoC.cpp
   src/RvCore.cpp
+  src/Tile1Core.cpp
   src/MemCtrl.cpp
   src/L1.cpp
   src/L2.cpp
@@ -11,15 +12,24 @@ file(GLOB SMICRO_BASE_SRCS
   src/MemTester.cpp
 )
 
+# Core pieces of the Tile1-based RV core from smile
+set(SMILE_CORE_SRCS
+  ${CMAKE_CURRENT_SOURCE_DIR}/../smile/src/Tile1.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../smile/src/Tile1_exec.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../smile/src/Instruction.cpp
+)
+
 # Original smicro testbench
 add_executable(smicro
   src/tb_smicro.cpp
   ${SMICRO_BASE_SRCS}
+  ${SMILE_CORE_SRCS}
 )
 
 target_include_directories(smicro
   PUBLIC
     include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../smile/include 
 )
 
 target_link_libraries(smicro cascade -lz -ltermcap -lpthread)
@@ -31,6 +41,7 @@ add_executable(test_vectadd
   src/test_vectadd.cpp
   src/hal_cascade.cpp
   ${SMICRO_BASE_SRCS}
+  ${SMILE_CORE_SRCS}
 )
 
 target_include_directories(test_vectadd

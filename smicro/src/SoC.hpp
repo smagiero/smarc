@@ -22,6 +22,7 @@ update_resp() <- m_resp |<==| out_core_resp update_retire() s_resp |<==| s_resp
 #include "MemCtrl.hpp"
 #include "NnAccel.hpp"
 #include "MemTester.hpp"
+#include "Tile1Core.hpp"
 #include <string>
 
 using namespace Cascade; // ok in project headers (macros expect it), but avoid in sub-component headers
@@ -51,7 +52,8 @@ public:
   void set_posted_writes(bool en) { if (mem_) mem_->set_posted_writes(en); }
 
   // Submodules (owned by SoC)
-  RvCore  *core_ = nullptr;
+  // RvCore  *core_ = nullptr;
+  Tile1Core *core_ = nullptr;
   MemTester *tester_ = nullptr;
   L1      *l1_   = nullptr;
   L2      *l2_   = nullptr;

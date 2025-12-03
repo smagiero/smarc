@@ -67,10 +67,10 @@ int main (int argc, char *argv[]) {
   // Step 2: Resolve suite and select traffic source; then build SoC
   // **************
   std::string S = std::string(suite); // assign suite settings to variable S
-  bool is_hal   = S.rfind("hal_",   0) == 0; // search backword up to index 0; if matches return 0
+  bool is_hal   = S.rfind("hal_",   0) == 0;         // search backward up to index 0; if matches return 0
   bool is_proto = S.rfind("proto_", 0) == 0;
   assert_always(is_hal || is_proto, "unknown -suite"); // descore assertion that's never compiled-out, if cond fails prints message & aborts 
-  bool use_tester = (S != "proto_core") && is_proto; // tester for proto_* except proto_core
+  bool use_tester = (S != "proto_core") && is_proto;        // tester for proto_* except proto_core
   SoC soc(parse_mode(topo), use_tester);             // invoke SoC object in desired config
   
   // **************

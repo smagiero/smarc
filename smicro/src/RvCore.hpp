@@ -15,7 +15,7 @@ update_resp() <- m_resp |<==
 #include "MemTypes.hpp" // mem req/resp packet types
 
 class RvCore : public Component {
-  DECLARE_COMPONENT(RvCore);
+  DECLARE_COMPONENT(RvCore); 
 public:
   RvCore(std::string name, COMPONENT_CTOR);
 
@@ -31,7 +31,7 @@ public:
   void update_resp();
 
 private:
-  enum { S_IDLE, S_W_SENT, S_R_REQ, S_R_WAIT, S_DONE } state_ = S_IDLE;
+  enum { S_IDLE, S_W_SENT, S_R_REQ, S_R_WAIT, S_DONE } state_ = S_IDLE; // RV core, just a simple state machine that does a store then a load
   u64 test_addr_ = 0x80000008ull;
   u64 pattern_   = 0xA5A5A5A5DEADBEEFull;
 };

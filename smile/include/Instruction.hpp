@@ -2,9 +2,10 @@
 // smile/include/Instruction.hpp
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Oct 11 2025
-//
-// Minimal RV32I decoder scaffolding for Tile1 experiments.
-
+/*
+Minimal RV32I decoder scaffolding for Tile1 experiments.  Pass a raw instruction
+in and this parses into an executable product like a decoder would.
+*/
 #pragma once
 
 #include <cstdint>

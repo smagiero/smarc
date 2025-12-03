@@ -9,7 +9,7 @@ A scaffold for a RISC-V SoC + NN accelerator in Cascade.  We're just methodicall
 
 ## Configure & Build
 ```bash
-# Configure from repo root (i.e., from cedar)
+# Configure from repo root (i.e., from smarc)
 cmake -S . -B build
 # Build smicro
 cmake --build build --target smicro -j
@@ -26,7 +26,7 @@ Protocol tests: traffic over the real path: Source → MemCtrl → DRAM, with la
 The tests are organized across several layers of varying complexity.
 ### Layer 0 — Smoke (a protocol test)
 Purpose: prove the sim ticks and wiring is sane.<br>
-Scope: Core does one fixed store→load readback.<br>
+Scope: core does one fixed store→load readback.<br>
 Value: runs every build in seconds; catches broken clock, ports, ctor macros, trace filters.
 ### Layer 1 — HAL content/bounds, no timing
 Purpose: prove DRAM bytes and address map is ok, independent of timing.<br>

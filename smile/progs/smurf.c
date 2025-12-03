@@ -4,7 +4,9 @@
 // Sebastian Claudiusz Magierowski Oct 14 2025 
 /*
 Minimal freestanding RV32I, no libc stuff.  Works as a flat .bin
-Does SUM(0…9)=45; & writes SUM=45 at 0x100; & if sum==45 sets FLAG=1 at 0x104; then ECALLs so tile sim (which looks for this) can halt.
+Does SUM(0…9)=45; & writes SUM=45 at 0x100; & if sum==45 sets FLAG=1 at 0x104; 
+then ECALLs so tile sim (which looks for this) can halt.
+
 Create the following memory distribution:
 0x0000  --------- <- CODE (.text, .rodata): start of our text (as per our compile instruction)
        |         |

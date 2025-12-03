@@ -2,7 +2,13 @@
 // smile/progs/smurf_threads.c
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 1 2025 
-
+/*
+Minimal freestanding RV32I, no libc stuff.  Works as a flat .bin
+Creates two simple "threads" that increment a shared variable `sum`:
+- thread0 adds 1 to sum five times, breaking after each add
+- thread1 adds 2 to sum five times, breaking after each add
+After both threads complete, the program ECALLs to exit, returning `sum` as the exit code.
+*/
 #include <stdint.h>
 
 volatile unsigned int sum = 0;

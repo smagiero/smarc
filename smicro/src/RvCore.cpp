@@ -14,7 +14,7 @@ RvCore::RvCore(std::string /*name*/, IMPL_CTOR) { // constructor registers two u
   UPDATE(update_resp).reads(m_resp);
 }
 
-void RvCore::update_req() {
+void RvCore::update_req() { // issue requests
   switch (state_) {
     case S_IDLE: {
       if (m_req.full()) break;
