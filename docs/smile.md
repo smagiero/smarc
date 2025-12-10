@@ -3,6 +3,175 @@ layout: default
 title: smile
 ---
 
-# smile
+# smile – Tile1 core + debugger playground
 
-Documentation for the smile package.
+`smile` is a small environment for experimenting with a single RV32 core (`Tile1`), simple accelerators, and a debugger, **outside** of the full `smicro` SoC harness.
+
+It gives you:
+
+- A standalone RV32 core (`Tile1`)
+- A clean memory abstraction (`MemoryPort`)
+- A tiny instruction decoder and execute helpers
+- A debugger REPL (breakpoints, stepping, memory dump)
+- A testbench (`tb_tile1`) that ties it all together
+
+The idea: you can iterate on the core, accelerators, and debugger here, then reuse the same pieces when the core is embedded in `smicro`.
+
+---
+
+## Big picture: who talks to whom?
+
+In the `tb_tile1` testbench, the wiring looks like this:
+
+```text
+         +---------------------+
+         |    tb_tile1.cpp     |
+         |---------------------|
+         |  - creates…         |
+         |    - Tile1          |
+         |    - Dram           |
+         |    - DramMemoryPort |
+         |    - accel          |
+         |    - debugger       |
+         +----------+----------+
+                    |
+                    V
+         Tile1 (CPU core, Tile1.cpp / Tile1_exec.cpp)
+                    |
+                    | MemoryPort::read32 / write32
+                    V
+       DramMemoryPort (shim, defined in tb_tile1.cpp)
+                    |
+                    | Dram::read / Dram::write
+                    V
+          Dram (pulled in from smicro/src/Dram.hpp)
+
+          +-------------------+
+          | AccelArraySum     |
+          | (AccelArraySum.*) |
+          | talks to memory   |
+          | via same          |
+          | MemoryPort        |
+          +-------------------+
+```
+On each cycle:
+1. The debugger calls Sim::run().
+2.	Cascade ticks the clock and calls Tile1::tick().
+3.	Tile1::tick() fetches an instruction via mem_port_->read32(pc).
+4.	The memory port shim turns that into a Dram::read(...) and returns the word.
+5.	Tile1 decodes and executes the instruction (possibly calling the accelerator).
+6.	The debugger inspects state and prints traces / breakpoints as needed.
+
+## smile/ directory structure
+
+```bash
+smile/
+├── include/         # Public headers for the core, accels, debugger
+│   ├── AccelArraySum.hpp
+│   ├── AccelDemoAdd.hpp
+│   ├── AccelPort.hpp
+│   ├── Debugger.hpp
+│   ├── Diagnostics.hpp
+│   ├── Instruction.hpp
+│   ├── Tile1_exec.hpp
+│   └── Tile1.hpp
+├── src/
+│   ├── AccelArraySum.cpp    # array-sum accelerator implementation
+│   ├── AccelDemoAdd.cpp     # trivial demo accelerator
+│   ├── Debugger.cpp         # debugger REPL + stepping logic
+│   ├── Diagnostics.cpp      # helper traces/asserts
+│   ├── Instruction.cpp      # RV32I decoder
+│   ├── tb_tile1.cpp         # testbench main() for Tile1 + Dram + debugger
+│   ├── Tile1_exec.cpp       # exec_* helpers (ALU, loads, branches, CSR, custom0)
+│   ├── Tile1.cpp            # core pipeline: fetch/decode/execute/trap
+│   └── util/
+│       ├── FlatBinLoader.cpp  # load flat .bin into MemoryPort
+│       └── FlatBinLoader.hpp
+├── progs/              # example programs + linker script
+│   ├── link_rv32.ld    # minimal RV32 linker script (places _start at 0x0)
+│   ├── smexit.c        # simplest “exit via ecall 93” program
+│   ├── smurf.c         # core test program
+│   ├── smurf_debug.c   # debugger-focused tests
+│   ├── smurf_threads.c # multithread-flavoured tests (for future)
+│   ├── prog.elf        # built ELF (from smurf.c or similar)
+│   └── prog.bin        # flat binary image (for tb_tile1)
+├── plans/
+│   └── smileplans.md   # scratchpad: roadmap and notes
+└── CMakeLists.txt      # build rules for the smile binary
+```
+## Core Pieces
+- `Tile1` (`Tile1.hpp/cpp`): the RV32 core implementation
+  - Files: `include/Tile1.hpp`, `src/Tile1.cpp`, `src/Tile1_exec.cpp`, `include/Instruction.hpp`, `src/Instruction.cpp`
+  - Role: implements a simple RV32I core
+    - one main entrypoint per cycle: `void Tile1::tick()` 
+    - standard logical handling sequence: fetch, decode, execute, trap/PC update
+  - Notes:
+    - uses `MemoryPort` to talk to memory (abstract interface, `Tile1` never talks directly to DRAM)
+    - uses `Instruction` for decoding RV32I instructions
+    - uses exec_* helpers in `Tile1_exec.cpp` for ALU, loads, branches, CSR, custom0
+- `MemoryPort`: a general protocol link for `Tile1` to talk to memories through
+  - Files: `include/Tile1.hpp` (abstract class defined here), `src/tb_tile1.cpp` (concrete implementation for a Dram model)
+  - Role: abstrace memory interface for allowing `Tile1` to access all sorts of memory backends  
+    - exposes simple word-oriented API: `read32(addr)`, `write32(addr, value)`.
+    - designed to be synchronous (0-delay) for simplicity.
+- Accelerators: 
+  - Files: `include/AccelPort.hpp`, `include/AccelArraySum.hpp/cpp`, `include/AccelDemoAdd.hpp/cpp`
+  - Role: simple accelerators that `Tile1` can call via custom0 instructions
+    - `AccelPort`: abstract interface for “something that can take a CUSTOM-0 instruction and optional memory access.”
+    - `AccelArraySum`: an example accelerator that sums an array in memory.
+- `Debugger`: 
+  - Files: `include/Debugger.hpp`, `src/Debugger.cpp`
+  - Role: a simple REPL debugger for stepping through instructions, setting breakpoints, and inspecting state
+    - connected to `Tile1` to read registers, PC, and memory via `MemoryPort`.
+- `Testbench` 
+  - Files: `src/tb_tile1.cpp`
+  - Role: a simple testbench that instantiates `Tile1`, `Dram`, and `Debugger` and runs the simulation. 
+    - loads a flat binary program into memory
+    - runs the simulation loop, calling `Tile1::tick()` and `Debugger::run()`
+
+## Example usage
+Build:
+```bash
+cd smarc
+cmake -S . -B build -DCEDAR_DIR=/path/to/Cascade/cedar
+cmake --build build --target tb_tile1 -j
+```
+Run with the default hard-coded program:
+```bash
+./build/smile/tb_tile1 -steps=50
+```
+Run a compiled program:
+```bash
+cd smile/progs
+riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 \
+  -nostartfiles -nostdlib -T link_rv32.ld \
+  smurf.c -o prog.elf
+
+riscv64-unknown-elf-objcopy -O binary prog.elf prog.bin
+
+cd ../..
+./build/smile/tb_tile1 -prog=smile/progs/prog.bin -load_addr=0x0 -start_pc=0x0 -steps=100
+```
+Launch the interactive debugger:
+```bash
+./build/smile/tb_tile1 -prog=smile/progs/prog.bin -load_addr=0x0 -start_pc=0x0
+# then in the REPL:
+smile> step
+smile> regs
+smile> mem 0x100 4
+smile> break 0x10
+smile> cont
+smile> exit
+```
+## Relationship to smicro
+- smile focuses on
+  - a single core (`Tile1`)
+  - instruction set
+  - accelerators
+  - debugger REPL
+- smicro focuses on
+  - SoC wiring (MemCtrl, DRAM, suites),
+  - memory protocols (MemReq/MemResp),
+  - different topologies and test suites
+
+The same `Tile1` + `Instruction` + `Tile1_exec` + accelerator code is meant to be shared between smile and smicro. The only thing that changes is how the MemoryPort is implemented and how the core gets clocked.

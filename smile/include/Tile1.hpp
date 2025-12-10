@@ -27,6 +27,7 @@ public:
   virtual uint32_t read32(uint32_t addr)                  = 0;
   virtual void     write32(uint32_t addr, uint32_t value) = 0;
 };
+
 class AccelPort;
 
 // Define the tile

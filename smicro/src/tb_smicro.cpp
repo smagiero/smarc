@@ -219,7 +219,6 @@ int main (int argc, char *argv[]) {
     }
     return false;
   };
-
   if (is_proto) {
     bool ok2 = run_suite(S, soc, eff_lat);
     assert_always(ok2, "unknown or failed -suite (proto_*)");

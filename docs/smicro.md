@@ -3,7 +3,7 @@ layout: default
 title: smicro
 ---
 
-# smicro
+# smicro - Small SoC with Memory Subsystem
 
 ## Components and Roles (smicro + smile)
 
