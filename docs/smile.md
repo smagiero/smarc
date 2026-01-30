@@ -15,7 +15,7 @@ It gives you:
 - A debugger REPL (breakpoints, stepping, memory dump)
 - A testbench (`tb_tile1`) that ties it all together
 
-The idea: you can iterate on the core, accelerators, and debugger here, then reuse the same pieces when the core is embedded in `smicro`.
+The idea: you can iterate on the core, accelerators, and debugger in `smile`, then reuse the same pieces when the core is embedded in `smicro`.
 
 ---
 
@@ -67,14 +67,14 @@ On each cycle:
 ```bash
 smile/
 ├── include/         # Public headers for the core, accels, debugger
-│   ├── AccelArraySum.hpp
-│   ├── AccelDemoAdd.hpp
-│   ├── AccelPort.hpp
-│   ├── Debugger.hpp
-│   ├── Diagnostics.hpp
-│   ├── Instruction.hpp
-│   ├── Tile1_exec.hpp
-│   └── Tile1.hpp
+│   ├── AccelArraySum.hpp   # array-sum accelerator interface
+│   ├── AccelDemoAdd.hpp    # demo accelerator interface
+│   ├── AccelPort.hpp       # abstract accelerator port interface
+│   ├── Debugger.hpp        # debugger REPL interface
+│   ├── Diagnostics.hpp     # diagnostics/tracing helpers
+│   ├── Instruction.hpp     # RV32I instruction decode interface
+│   ├── Tile1_exec.hpp      # exec_* helper declarations
+│   └── Tile1.hpp           # Tile1 core interface + MemoryPort API
 ├── src/
 │   ├── AccelArraySum.cpp    # array-sum accelerator implementation
 │   ├── AccelDemoAdd.cpp     # trivial demo accelerator
@@ -86,7 +86,7 @@ smile/
 │   ├── Tile1.cpp            # core pipeline: fetch/decode/execute/trap
 │   └── util/
 │       ├── FlatBinLoader.cpp  # load flat .bin into MemoryPort
-│       └── FlatBinLoader.hpp
+│       └── FlatBinLoader.hpp  # loader interface for flat binaries
 ├── progs/              # example programs + linker script
 │   ├── link_rv32.ld    # minimal RV32 linker script (places _start at 0x0)
 │   ├── smexit.c        # simplest “exit via ecall 93” program
@@ -95,8 +95,6 @@ smile/
 │   ├── smurf_threads.c # multithread-flavoured tests (for future)
 │   ├── prog.elf        # built ELF (from smurf.c or similar)
 │   └── prog.bin        # flat binary image (for tb_tile1)
-├── plans/
-│   └── smileplans.md   # scratchpad: roadmap and notes
 └── CMakeLists.txt      # build rules for the smile binary
 ```
 ## Core Pieces
@@ -111,7 +109,7 @@ smile/
     - uses exec_* helpers in `Tile1_exec.cpp` for ALU, loads, branches, CSR, custom0
 - `MemoryPort`: a general protocol link for `Tile1` to talk to memories through
   - Files: `include/Tile1.hpp` (abstract class defined here), `src/tb_tile1.cpp` (concrete implementation for a Dram model)
-  - Role: abstrace memory interface for allowing `Tile1` to access all sorts of memory backends  
+  - Role: abstract memory interface for allowing `Tile1` to access all sorts of memory backends  
     - exposes simple word-oriented API: `read32(addr)`, `write32(addr, value)`.
     - designed to be synchronous (0-delay) for simplicity.
 - Accelerators: 
@@ -123,7 +121,7 @@ smile/
   - Files: `include/Debugger.hpp`, `src/Debugger.cpp`
   - Role: a simple REPL debugger for stepping through instructions, setting breakpoints, and inspecting state
     - connected to `Tile1` to read registers, PC, and memory via `MemoryPort`.
-- `Testbench` 
+- `Testbench`:
   - Files: `src/tb_tile1.cpp`
   - Role: a simple testbench that instantiates `Tile1`, `Dram`, and `Debugger` and runs the simulation. 
     - loads a flat binary program into memory
