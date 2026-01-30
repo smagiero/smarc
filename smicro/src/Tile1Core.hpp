@@ -3,7 +3,7 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Dec 2 2025
 /*
-Wrapper for Tile1 that plugs into smicro ecosystem.
+Tile1Core: minimal wrapper to host Tile1 inside smicro ecosystem.
 
           (call graph / interfaces)
 

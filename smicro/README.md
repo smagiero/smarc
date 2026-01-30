@@ -1,7 +1,7 @@
 smicro
 =====
 
-A scaffold for a RISC-V SoC + NN accelerator in Cascade.  We're just methodically building up an SoC for bio-AI and testing/evaluating it as we go along.
+A scaffold for a RISC-V SoC + NN accelerator simulation in Cascade and its successors. The SoC is designed for bio-AI.
 
 - SoC top maintains a simple cycle counter and accepts a `--topo` param:
   - `via_l1`, `via_l2` (default), `dram`, `priv`.
@@ -19,9 +19,9 @@ Command + Shift + B
 
 ## Test Structure
 A layered test structure is used to decouple test failure causes and keep tests fast.  There are two main types of tests 
-* Hardware Abstraction Layer (HAL) tests and 
+* Hardware Abstraction Layer (HAL) tests
 * Protocol tests.<br>
-HAL tests: direct component pokes (e.g., DRAM). No clocking. No MemCtrl. Content/bounds only.<br>
+HAL tests: direct component pokes (e.g., DRAM). No clocking. No MemCtrl. They only confirm basic content (e.g., does the memory contain what I think it does) and bounds (e.g., are we fetching from valid memory locations) tests.<br>
 Protocol tests: traffic over the real path: Source → MemCtrl → DRAM, with latency, posted-acks, RAW, etc.
 
 The tests are organized across several layers of varying complexity.
@@ -96,34 +96,34 @@ Recommended traces:
 Note that Cascade's tracing system needs the trace key to be enabled (with `-trace`) to emit output.  Trace filters match component instance names (contexts), not classes.  Use `-showcontexts` to list contexts, or use known instance names in filters.  Note: `-showtraces`/`-showkeys` list named trace keys, not component contexts. Since this demo uses anonymous `trace("...")` calls (no named keys), `-showtraces` typically only prints built‑in keys like `checkpoint`.
 
 ```bash
-# Interactive mode; press return to step, q to quit
+# Show component instances (how you'd run from /smarc/build/smicro dir)
+./smicro -showcontexts
+# Interactive mode; press return to step, q to quit (how you'd run from /smarc dir) 
 ./build/smicro/smicro -suite=proto_core -trace "SoC"
-# Run 3 steps then exit (from build/smicro dir)
+# Run 3 steps then exit (you can guess where to run this from)
 ./smicro -suite=proto_core -trace "SoC" -steps=3
-# Typical contexts (verify with -showcontexts): SoC, SoC.RvCore, SoC.mem, SoC.Dram
-./smicro -suite=proto_core -trace "SoC;*.RvCore;*.Dram" -steps=25
+# Typical contexts (verify with -showcontexts): SoC, SoC.Tile1Core, SoC.Tile1Core.Tile1, SoC.Dram, etc.
+./smicro -suite=proto_core -trace "SoC;*.Tile1Core.Tile1;*.Dram" -steps=25
 # Specify topology and show all traces
 ./smicro -suite=proto_core -topo=dram -trace "*" -steps=25
 # Set MemCtrl latency
-./smicro -suite=proto_core -trace "SoC.RvCore;SoC" -steps=20 -mem_latency=1
+./smicro -suite=proto_core -trace "SoC.Tile1Core.Tile1;SoC" -steps=20 -mem_latency=1
 # See MemCtrl/DRAM timing (tester-driven)
-./smicro -suite=proto_no_raw -trace "SoC.RvCore;SoC.Dram;SoC.mem;SoC" -steps=10 -mem_latency=1
-# Show component instances
-./smicro -showcontexts
+./smicro -suite=proto_no_raw -trace "SoC.Tile1Core.Tile1;SoC.Dram;SoC.mem;SoC" -steps=10 -mem_latency=1
 # Posted writes on, proto_core
-./smicro -suite=proto_core -trace "SoC.RvCore;SoC.Dram;SoC" -steps=11 -mem_latency=2 -posted_writes=1
+./smicro -suite=proto_core -trace "SoC.Tile1Core.Tile1;SoC.Dram;SoC" -steps=11 -mem_latency=2 -posted_writes=1
 # HAL multi-address content check (t=0 only)
 ./smicro -suite=hal_multi -trace "SoC.Dram" -steps=1
 # HAL bounds check (t=0 only)
 ./smicro -suite=hal_bounds -trace "SoC.Dram" -steps=1
 # Protocol RAW forward (same-tick store→load A)
-./smicro -suite=proto_raw -trace "SoC;SoC.RvCore;SoC.mem;SoC.Dram" -steps=11
+./smicro -suite=proto_raw -trace "SoC;SoC.Tile1Core.Tile1;SoC.mem;SoC.Dram" -steps=11
 # Protocol no-RAW (store A, load B; expect ≈ max(1, mem_latency) cycles)
-./smicro -suite=proto_no_raw -trace "SoC;SoC.RvCore;SoC.mem;SoC.Dram" -steps=11 -mem_latency=3
+./smicro -suite=proto_no_raw -trace "SoC;SoC.Tile1Core.Tile1;SoC.mem;SoC.Dram" -steps=11 -mem_latency=3
 # Protocol RAR idempotence (two loads of A match)
-./smicro -suite=proto_rar -trace "SoC;SoC.RvCore;SoC.mem;SoC.Dram" -steps=11
+./smicro -suite=proto_rar -trace "SoC;SoC.Tile1Core.Tile1;SoC.mem;SoC.Dram" -steps=11
 # Protocol latency sweep (L in {0,1,3,7}, checks ≈ L(+1))
-./smicro -suite=proto_lat -trace "SoC;SoC.RvCore;SoC.mem;SoC.Dram" -steps=40
+./smicro -suite=proto_lat -trace "SoC;SoC.Tile1Core.Tile1;SoC.mem;SoC.Dram" -steps=40
 ```
 
 ## Build & Run Separate HAL (broken)
