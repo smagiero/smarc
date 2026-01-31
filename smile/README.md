@@ -181,4 +181,4 @@ EOF
 # or
 smile> source myscript.dbg
 ```
-- Exiting a program? On `ecall` want x17=a7==93 means 'this ecall is the exit syscall' and x10=a0==<code> denotes the program's exit status (0 means clean termination !0 denotes some kind of problem).
+- Exiting a program? How an `ecall` is interpreted by the core depends on what codes it finds in standard-stipulated registers.  For example we currently have a special "exit" syscall setting.  When the core sees `ecall` it checks register x17=a7.  If a7==93, then the core understands that 'this ecall is the exit syscall' and x10=a0==<code> denotes the program's exit status (0 means clean termination !0 denotes some kind of problem).  If a7!=93, the core checks mtvec for a trap handler address and jumps there to handle the ecall as a normal trap.  See `Tile1_exec.cpp` `exec_ecall()`.

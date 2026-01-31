@@ -27,20 +27,20 @@ void exec_add(Tile1& tile, const Instruction& instr) {
 }
 
 void exec_ecall(Tile1& tile, const Instruction& /*instr*/) { // raise a trap
-  const uint32_t syscall = tile.read_reg(17); // a7 holds syscall id
+  const uint32_t syscall = tile.read_reg(17); // a7=x17 holds syscall id
   if (syscall == 93u) {                       // is a7 = 93 when we ecall then exit()
-    const uint32_t code = tile.read_reg(10);  // a0 holds exit code
+    const uint32_t code = tile.read_reg(10);  // a0=x10 holds exit code
     tile.request_exit(code);                  // set exit_code & flags: exited_ & halted_
     return;
-  }
+  }                                           // if we don't have this a7 setting (not a special "exit" syscall)…
   Tile1::TrapCause cause = Tile1::TrapCause::EnvironmentCallFromMMode;
   switch (tile.priv_mode()) { // respect the active privilege mode
     case Tile1::PrivMode::User:        cause = Tile1::TrapCause::EnvironmentCallFromUMode; break;
     case Tile1::PrivMode::Supervisor:  cause = Tile1::TrapCause::EnvironmentCallFromSMode; break;
     case Tile1::PrivMode::Machine:     cause = Tile1::TrapCause::EnvironmentCallFromMMode; break;
   }
-  tile.request_trap(cause); // simply calls helper so that trap pipeline kicks in
-}
+  tile.request_trap(cause);                   // …treat ecall as real trap, set trap_pending_ = true
+}                                             // on next tick, Tile1.cpp enters trap pipeline (raise_trap)
 
 void exec_ebreak(Tile1& tile, const Instruction& /*instr*/) {
   tile.request_trap(Tile1::TrapCause::Breakpoint);

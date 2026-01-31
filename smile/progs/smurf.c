@@ -7,6 +7,12 @@ Minimal freestanding RV32I, no libc stuff.  Works as a flat .bin
 Does SUM(0…9)=45; & writes SUM=45 at 0x100; & if sum==45 sets FLAG=1 at 0x104; 
 then ECALLs so tile sim (which looks for this) can halt.
 
+smurf.c makes ecall invoke a trap handler. Rather than using a special "exit" syscall (a7=93).
+(As coded in Tile1_exec.cpp exec_ecall()).  smurf.c writes trap handler's address into mtvec
+CSR (Tile1::write_csr() deals with this write).  smurf.c also defines the trap handler itself.
+Tile1's trap handling logic (Tile1::raise_trap()) jumps to the address in mtvec on a trap and
+executes the handler.
+
 Create the following memory distribution:
 0x0000  --------- <- CODE (.text, .rodata): start of our text (as per our compile instruction)
        |         |
@@ -53,7 +59,7 @@ void _start(void) {           // declare _start, a function that takes no argume
 } 
 
 static inline void do_ecall(void) {
-  __asm__ volatile ("ecall");
+  __asm__ volatile ("ecall"); // ultimately handled by
 }
 
 static inline void do_ebreak(void) {
@@ -119,7 +125,7 @@ int main(void) {
   volatile uint32_t *flag      = FLAG_ADDR;       // flag = addr 0x104 
   volatile uint32_t *breakflag = BREAK_FLAG_ADDR; // flag set by breakpoint trap
 
-  write_mtvec(trap_handler);           // install trap handler into mtvec
+  write_mtvec(trap_handler);           // install trap handler into mtvec (i.e., write fn addr in m/c trap vector addr)
 
   *sum = 0;                            // M[0x100] <-- 0
   for (uint32_t i = 0; i < 10; ++i) {
@@ -133,7 +139,7 @@ int main(void) {
   }
 
   (void)breakflag;                     // suppress unused warning until we poll it
-  do_ebreak();                         // trigger breakpoint trap first
-  do_ecall();                          // trigger ecall trap next
+  do_ebreak();                         // trigger breakpoint trap first (and come back)
+  do_ecall();                          // trigger ecall trap next (and never come back)
   for(;;) {}                           // safety (won’t run if ECALL halts)
 }

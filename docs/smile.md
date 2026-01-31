@@ -64,6 +64,7 @@ On each cycle:
 
 ## smile/ directory structure
 
+
 ```bash
 smile/
 ├── include/         # Public headers for the core, accels, debugger
@@ -97,6 +98,45 @@ smile/
 │   └── prog.bin        # flat binary image (for tb_tile1)
 └── CMakeLists.txt      # build rules for the smile binary
 ```
+
+## Current test programs (`smile/progs/`)
+
+These are the small, freestanding RV32 programs that are currently used with `smile`:
+
+- **`smexit.c`** – minimal exit sanity check  
+  Issues an `ecall` with syscall ID 93 (put in a7 so system knows how to interpret this `ecall`) and an exit code (e.g., 7 in a0) almost immediately. Used to verify that:
+  - ECALL handling works
+  - `Tile1::request_exit()` is wired correctly
+  - the simulator halts cleanly with the expected exit code
+
+- **`smurf.c`** – main bring-up + trap-handling demo  
+  Sets up a stack, installs a trap handler in `mtvec`, computes `SUM(0…9) = 45` into memory at `0x0100`, and sets a flag at `0x0104` depending on whether the sum is correct. It then:
+  - triggers `ebreak` and `ecall`
+  - uses `mcause` to distinguish breakpoint vs ecall
+  - writes `0xBEEF` to `0x0108` on breakpoint and `0xDEAD` to `0x0104` on ecall
+
+  This program exercises:
+  - LW/SW and simple ALU arithmetic in a loop
+  - conditional branches
+  - CSR setup via `mtvec`
+  - trap entry/exit (mepc/mcause, mret)
+
+- **`smurf_debug.c`** – debugger REPL exercise  
+  Writes known patterns to “scratch” locations at `0x0100` and `0x0104`, loads specific constants into registers (`t0`, `t1`, `s0`, `a0`), then executes `ebreak` followed by `ecall`. It is designed so that you can:
+  - break into the debugger
+  - inspect registers and memory from the REPL
+  - confirm that exit carries the expected code
+
+- **`smurf_threads.c`** – toy shared-sum “two-thread” demo  
+  Two C functions (`thread0` and `thread1`) both update a shared global `sum`:
+  - `thread0` adds 1 to `sum` five times, with an `ebreak` after each add
+  - `thread1` adds 2 to `sum` five times, also breaking after each add  
+  After both complete, the program ECALLs and returns `sum` as the exit code. This is useful for:
+  - observing repeated traps/breakpoints in a loop
+  - watching how shared memory updates show up in the debugger
+
+All of these programs are linked with `progs/link_rv32.ld`, which places `_start` at address `0x00000000` so Tile1 can begin execution by simply starting at PC=0 after reset.
+
 ## Core Pieces
 - `Tile1` (`Tile1.hpp/cpp`): the RV32 core implementation
   - Files: `include/Tile1.hpp`, `src/Tile1.cpp`, `src/Tile1_exec.cpp`, `include/Instruction.hpp`, `src/Instruction.cpp`
