@@ -3,7 +3,7 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Oct 6 2025
 /*
-How the tile process instructions and talks to memory.
+How the tile processes instructions and talks to memory.
 */
 #include "Tile1.hpp"
 #include "Tile1_exec.hpp"

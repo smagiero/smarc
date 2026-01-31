@@ -15,7 +15,7 @@ Define tile processing sequence upon ticks as well as support methods and it's m
 struct ThreadContext {       // structure to hold thread context
   uint32_t pc       = 0;     // what pc to start the thread at
   uint32_t regs[32] = {};    // value of regs for thread
-  bool active       = false; // denote whether tread active (or not)
+  bool active       = false; // denote whether thread active (or not)
 };
 
 // Software interface (not a simulatable object), just a protocol

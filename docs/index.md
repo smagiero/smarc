@@ -19,17 +19,18 @@ Alleluia.  Sequentia.
 
 # Intro
 
-`smarc` is a playground for building and simulating small RISC-V systems aimed at **sequence-centric workloads** (molecule chains like DNA, streaming sensors, path planners, etc.). It glues together a cycle-accurate system-on-chip (SoC) harness (`smicro`) with a simple RV32 core and tools (`smile`) so you can experiment with architectures before committing to RTL.
+`smarc` is a where I prototype RISC-V cores + memory system + accelerators for future **sequencing SoCs** (to handle workloads on molecule chains like DNA, streaming sensors, path planners, etc.). It consists of two main parts.  `smile` checks what the codes does on the core and `smicro` checls how the system moves the data.
 
 ## Packages
-
-- **smicro** – SoC harness and testbenches  
-  - Instantiates cores, DRAM, memory controllers, testers  
-  - Drives experiments via `./smicro -suite=... -topo=...`
 
 - **smile** – core model and programs  
   - `Tile1`: a simple RV32 core with a clean `MemoryPort` interface  
   - Tiny test programs and support code for instruction decode/execute
+  
+- **smicro** – SoC harness and testbenches  
+  - Instantiates cores, DRAM, memory controllers, testers  
+  - Drives experiments via `./smicro -suite=... -topo=...`
+
 
 ## What can I do here?
 
@@ -37,7 +38,21 @@ Alleluia.  Sequentia.
 - Let the core run directly against DRAM (`-suite=proto_core`) and watch instruction traces
 - Evolve the core and memory system together, while keeping the same high-level driver interface
 
+## When to use `smile` vs `smicro`
+
+**Use `smile` for…**
+
+- Checking what a small RISC-V program actually does to Tile1’s registers and memory
+- Stepping instruction-by-instruction with a debugger to debug decode/execute/trap behavior
+- Trying out CUSTOM-0 instructions and accelerators and verifying their results
+
+**Use `smicro` for…**
+
+- Testing the MemCtrl ↔ DRAM protocol and timing with scripted traffic
+- Running Tile1 inside a small SoC harness to check system-level integration
+- Exploring how different memory latencies/topologies affect request/response timing
+
 For more detail, see:
 
-- [smicro](./smicro.md) – SoC wiring, memory paths, test suites  
 - [smile](./smile.md) – Tile1 core, instruction decode/execute, and how it talks to memory
+- [smicro](./smicro.md) – SoC wiring, memory paths, test suites  

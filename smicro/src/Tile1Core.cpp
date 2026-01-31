@@ -2,6 +2,9 @@
 // smicro/src/Tile1Core.cpp
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Dec 2 2025
+/*
+Minimal wrapper to host Tile1 in smicro as a Component.  See Tile1Core.hpp for details.
+*/
 
 #include "Tile1Core.hpp"
 

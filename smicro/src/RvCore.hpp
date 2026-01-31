@@ -10,6 +10,17 @@ F -> update_req()  ->  m_req |==>
 S                            |   
 M <- update_resp() <- m_resp |<==
 -----------------------------+   
+
+Old use case in smicro/src/SoC.cpp (not currently used; see Tile1Core instead):
+
+Smoke-test path (no caches)
+
+------- RVCore ---------+   +-------------- MemCtrl ---------------+   +--- Dram ---
+ update_req() ->  m_req |==>| in_core_req   update_issue()   s_req |==>| s_req 
+                        |   |                                      |   |       
+update_resp() <- m_resp |<==| out_core_resp update_retire() s_resp |<==| s_resp
+------------------------+   +--------------------------------------+   +------------
+
 */
 #pragma once
 #include <cascade/Cascade.hpp>

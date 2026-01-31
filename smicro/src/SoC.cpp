@@ -4,13 +4,51 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Aug 16 2025
 /*
-Smoke-test path (no caches)
+Smoke-test topologies (no caches; accel off)
 
-------- RVCore ---------+   +-------------- MemCtrl ---------------+   +--- Dram ---
- update_req() ->  m_req |==>| in_core_req   update_issue()   s_req |==>| s_req 
-                        |   |                                      |   |       
-update_resp() <- m_resp |<==| out_core_resp update_retire() s_resp |<==| s_resp
-------------------------+   +--------------------------------------+   +------------
+(1) Suite: proto_core        (Driver: core, MemCtrl idle)
+
+    Tile1Core (Tile1 CPU)
+    ---------------------
+      Tile1::tick()
+          |
+          |  MemoryPort::read32 / write32
+          v
+      [ Tile1Core::DramMemoryPort ]
+          |
+          |  Dram::read / Dram::write
+          v
+         ------ 
+        | Dram |   (zero-latency storage; HAL-style interface)
+         ------
+
+    - MemCtrl core-side ports are neutralized:
+        core.m_req  -> bit bucket
+        core.m_resp <- 0
+        mem.in_core_req <- 0
+        mem.out_core_resp -> bit bucket
+    - MemTester is instantiated but not used.
+
+
+(2) Suites: proto_raw / proto_no_raw / proto_rar / proto_lat   (Driver: tester)
+
+    -------- MemTester -------+   +-------------- MemCtrl ---------------+   +--- Dram ---
+     enqueue_*() ->  m_req    |==>| in_core_req   update_issue()   s_req |==>| s_req 
+                              |   |                                      |   |       
+       results() <- m_resp    |<==| out_core_resp update_retire() s_resp |<==| s_resp
+    --------------------------+   +--------------------------------------+   +------------
+
+    - Tile1Core’s MemReq/MemResp ports are parked:
+        core.m_req  -> bit bucket
+        core.m_resp <- 0
+      so the core is not on the MemCtrl protocol path yet.
+    - Tile1Core may still have a private MemoryPort → Dram connection for core experiments,
+      but all protocol / latency tests are driven by MemTester through MemCtrl.
+
+Planned evolution:
+    Later, Tile1Core will grow a small LSU that drives m_req/m_resp directly, replacing
+    MemTester as the MemCtrl client so the real core exercises the same MemReq/MemResp path.
+
 */
 #include "SoC.hpp"
 
@@ -25,7 +63,7 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   g_soc = this;
   // ---- Allocate blocks ----
   // core_   = new RvCore("core");
-  core_   = new Tile1Core("core");
+  core_   = new Tile1Core("core");   // Tile1Core: minimal wrapper to host Tile1 in smicro
   tester_ = new MemTester("tester");
   l1_     = new L1("l1");
   l2_     = new L2("l2");
