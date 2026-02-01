@@ -46,6 +46,12 @@ Instruction::Instruction(uint32_t raw_instr) : raw(raw_instr) { // initializer l
         i.rd  = rd;
         i.rs1 = rs1;
         i.imm = sign_extend(raw >> 20, 12);
+      } else if (funct3 == 0x1) { // SLLI
+        type     = Type::I;
+        category = Category::ALU;
+        i.rd  = rd;
+        i.rs1 = rs1;
+        i.imm = static_cast<int32_t>((raw >> 20) & 0x1f);
       }
       break;
     }
