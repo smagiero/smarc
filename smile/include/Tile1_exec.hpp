@@ -35,6 +35,8 @@ void exec_ebreak(Tile1& tile, const Instruction& instr);
 void exec_uret(Tile1& tile, const Instruction& instr);
 void exec_sret(Tile1& tile, const Instruction& instr);
 void exec_mret(Tile1& tile, const Instruction& instr);
+void exec_fence(Tile1& tile, const Instruction& instr);
+void exec_fence_i(Tile1& tile, const Instruction& instr);
 void exec_lw(Tile1& tile, const Instruction& instr);
 void exec_lb(Tile1& tile, const Instruction& instr);
 void exec_lh(Tile1& tile, const Instruction& instr);

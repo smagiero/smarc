@@ -119,15 +119,23 @@ void Tile1::tick() {
     // SYSTEM
     case Instruction::Category::SYSTEM:
       if (decoded.type == Instruction::Type::I) {
-        switch (decoded.i.imm) {
-          case 0x000: exec_ecall(*this, decoded); break;
-          case 0x001: exec_ebreak(*this, decoded); break;
-          case 0x002: exec_uret(*this, decoded); break;
-          case 0x102: exec_sret(*this, decoded); break;
-          case 0x302: exec_mret(*this, decoded); break;
-          default: break;
+        if (decoded.opcode == 0x73) {
+          switch (decoded.i.imm) {
+            case 0x000: exec_ecall(*this, decoded); break;
+            case 0x001: exec_ebreak(*this, decoded); break;
+            case 0x002: exec_uret(*this, decoded); break;
+            case 0x102: exec_sret(*this, decoded); break;
+            case 0x302: exec_mret(*this, decoded); break;
+            default: break;
+          }
+          advance_pc = false;
+        } else if (decoded.opcode == 0x0f) {
+          if (decoded.funct3 == 0x0) {
+            exec_fence(*this, decoded);
+          } else if (decoded.funct3 == 0x1) {
+            exec_fence_i(*this, decoded);
+          }
         }
-        advance_pc = false;
       }
       break;
     // MEMORY

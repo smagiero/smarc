@@ -197,6 +197,14 @@ void exec_mret(Tile1& tile, const Instruction& /*instr*/) {
   tile.resume_from_trap(); // reuse shared plumbing
 }
 
+void exec_fence(Tile1& /*tile*/, const Instruction& /*instr*/) {
+  // No-op in this single-core, in-order Tile1 model.
+}
+
+void exec_fence_i(Tile1& /*tile*/, const Instruction& /*instr*/) {
+  // No-op in this single-core, in-order Tile1 model.
+}
+
 void exec_lui(Tile1& tile, const Instruction& instr) {
   const auto& op = instr.u;
   tile.write_reg(op.rd, static_cast<uint32_t>(op.imm));

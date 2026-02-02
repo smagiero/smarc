@@ -12,6 +12,8 @@ Regression tests (exit code 1 on pass, 0 on fail):
 - branch_bxx_test.c: BGE/BLTU/BGEU sanity check
 - load_bh_test.c: LB/LH/LBU/LHU sanity check
 - store_bh_test.c: SB/SH sanity check
+- fence_test.c: FENCE/FENCE.I sanity check
+  - Note: fence.i uses `.word 0x0000100f` to avoid requiring Zifencei in the assembler.
 
 Build/run snippet (from repo root, replace <test>.c):
 ```

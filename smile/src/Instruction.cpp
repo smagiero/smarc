@@ -205,6 +205,16 @@ Instruction::Instruction(uint32_t raw_instr) : raw(raw_instr) { // initializer l
       }
       break;
     }
+    case 0x0F: { // FENCE/FENCE.I (000_1111)
+      if (funct3 == 0x0 || funct3 == 0x1) {
+        type     = Type::I;
+        category = Category::SYSTEM;
+        i.rd  = rd;
+        i.rs1 = rs1;
+        i.imm = sign_extend(raw >> 20, 12);
+      }
+      break;
+    }
     case 0x0b: { // CUSTOM-0
       type     = Type::R;
       category = Category::CUSTOM;
