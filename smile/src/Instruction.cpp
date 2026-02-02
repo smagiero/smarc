@@ -83,8 +83,9 @@ Instruction::Instruction(uint32_t raw_instr) : raw(raw_instr) { // initializer l
       }
       break;
     }
-    case 0x03: { // I-type Loads 000_0011 (LW, LH, etc.)
-      if (funct3 == 0x2) { // LW
+    case 0x03: { // I-type Loads 000_0011 (LB/LH/LW/LBU/LHU)
+      if (funct3 == 0x0 || funct3 == 0x1 || funct3 == 0x2 ||
+          funct3 == 0x4 || funct3 == 0x5) {
         type     = Type::I;
         category = Category::LOAD;
         i.rd  = rd;

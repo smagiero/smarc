@@ -19,8 +19,10 @@ struct ThreadContext {       // structure to hold thread context
 };
 
 // Software interface (not a simulatable object), just a protocol
-/* Lightweight memory port (sim how CPU talks to memory).  Implementation (in tb_tile1.cpp for now)
-can back this with any Cascade component that exposes load/store helpvers (e.g., smicro's Dram) */
+/* Lightweight memory port (sim how CPU talks to memory). Implementation (in tb_tile1.cpp for now)
+can back this with any Cascade component that exposes load/store helpers (e.g., smicro's Dram).
+Note: Tile1's byte/halfword loads (LB/LH/LBU/LHU) are synthesized by reading a 32-bit word
+via read32() and extracting the requested byte/halfword. */
 class MemoryPort {
 public:
   virtual          ~MemoryPort()                          = default;

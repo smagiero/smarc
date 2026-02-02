@@ -218,6 +218,54 @@ void exec_lw(Tile1& tile, const Instruction& instr) {
   tile.write_reg(op.rd, data);                                       // write to reg
 }
 
+void exec_lb(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.i;
+  auto* mem = tile.memory();
+  if (!mem) return;
+  const int32_t  base = static_cast<int32_t>(tile.read_reg(op.rs1));
+  const uint32_t addr = static_cast<uint32_t>(base + op.imm);
+  const uint32_t word = mem->read32(addr & ~0x3u);
+  const uint32_t shift = (addr & 0x3u) * 8u;
+  const int8_t   byte = static_cast<int8_t>((word >> shift) & 0xffu);
+  tile.write_reg(op.rd, static_cast<uint32_t>(byte));
+}
+
+void exec_lbu(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.i;
+  auto* mem = tile.memory();
+  if (!mem) return;
+  const int32_t  base = static_cast<int32_t>(tile.read_reg(op.rs1));
+  const uint32_t addr = static_cast<uint32_t>(base + op.imm);
+  const uint32_t word = mem->read32(addr & ~0x3u);
+  const uint32_t shift = (addr & 0x3u) * 8u;
+  const uint32_t byte = (word >> shift) & 0xffu;
+  tile.write_reg(op.rd, byte);
+}
+
+void exec_lh(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.i;
+  auto* mem = tile.memory();
+  if (!mem) return;
+  const int32_t  base = static_cast<int32_t>(tile.read_reg(op.rs1));
+  const uint32_t addr = static_cast<uint32_t>(base + op.imm);
+  const uint32_t word = mem->read32(addr & ~0x3u);
+  const uint32_t shift = (addr & 0x2u) * 8u;
+  const int16_t  half = static_cast<int16_t>((word >> shift) & 0xffffu);
+  tile.write_reg(op.rd, static_cast<uint32_t>(half));
+}
+
+void exec_lhu(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.i;
+  auto* mem = tile.memory();
+  if (!mem) return;
+  const int32_t  base = static_cast<int32_t>(tile.read_reg(op.rs1));
+  const uint32_t addr = static_cast<uint32_t>(base + op.imm);
+  const uint32_t word = mem->read32(addr & ~0x3u);
+  const uint32_t shift = (addr & 0x2u) * 8u;
+  const uint32_t half = (word >> shift) & 0xffffu;
+  tile.write_reg(op.rd, half);
+}
+
 void exec_sw(Tile1& tile, const Instruction& instr) {
   const auto& op = instr.s; // alias for S-type decoded fields
   auto* mem = tile.memory();

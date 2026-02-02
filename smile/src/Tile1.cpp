@@ -133,7 +133,17 @@ void Tile1::tick() {
     // MEMORY
     case Instruction::Category::LOAD:
       if (decoded.type == Instruction::Type::I) {
-        exec_lw(*this, decoded);
+        if (decoded.funct3 == 0x0) {
+          exec_lb(*this, decoded);
+        } else if (decoded.funct3 == 0x1) {
+          exec_lh(*this, decoded);
+        } else if (decoded.funct3 == 0x2) {
+          exec_lw(*this, decoded);
+        } else if (decoded.funct3 == 0x4) {
+          exec_lbu(*this, decoded);
+        } else if (decoded.funct3 == 0x5) {
+          exec_lhu(*this, decoded);
+        }
       }
       break;
     case Instruction::Category::STORE:
