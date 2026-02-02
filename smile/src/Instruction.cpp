@@ -52,6 +52,15 @@ Instruction::Instruction(uint32_t raw_instr) : raw(raw_instr) { // initializer l
         i.rd  = rd;
         i.rs1 = rs1;
         i.imm = static_cast<int32_t>((raw >> 20) & 0x1f);
+      } else if (funct3 == 0x5) { // SRLI/SRAI
+        const uint32_t funct7_i = raw >> 25;
+        if (funct7_i == 0x00 || funct7_i == 0x20) {
+          type     = Type::I;
+          category = Category::ALU;
+          i.rd  = rd;
+          i.rs1 = rs1;
+          i.imm = static_cast<int32_t>((raw >> 20) & 0x1f);
+        }
       }
       break;
     }

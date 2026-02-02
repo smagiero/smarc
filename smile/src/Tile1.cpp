@@ -55,8 +55,20 @@ void Tile1::tick() {
     // ALU
     case Instruction::Category::ALU:
       if (decoded.type == Instruction::Type::I) {
-        if (decoded.opcode == 0x13 && decoded.funct3 == 0x1) {
-          exec_slli(*this, decoded);
+        if (decoded.opcode == 0x13) {
+          if (decoded.funct3 == 0x1) {
+            exec_slli(*this, decoded);
+          } else if (decoded.funct3 == 0x5) {
+            if (decoded.funct7 == 0x00) {
+              exec_srli(*this, decoded);
+            } else if (decoded.funct7 == 0x20) {
+              exec_srai(*this, decoded);
+            } else {
+              exec_addi(*this, decoded);
+            }
+          } else {
+            exec_addi(*this, decoded);
+          }
         } else {
           exec_addi(*this, decoded);
         }
