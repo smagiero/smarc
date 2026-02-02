@@ -8,6 +8,7 @@ Regression tests (exit code 1 on pass, 0 on fail):
 - bitwise_imm_test.c: XORI/ORI/ANDI sanity check
 - rtype_logic_test.c: SUB/XOR/OR/AND sanity check
 - rtype_slt_test.c: SLT/SLTU sanity check
+- rtype_shift_test.c: SLL/SRL/SRA sanity check
 
 Build/run snippet (from repo root, replace <test>.c):
 ```
