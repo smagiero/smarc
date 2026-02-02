@@ -103,8 +103,9 @@ Instruction::Instruction(uint32_t raw_instr) : raw(raw_instr) { // initializer l
       }
       break;
     }
-    case 0x63: { // B-type Branches 110_0011 (BEQ/BNE/BLT)
-      if (funct3 == 0x0 || funct3 == 0x1 || funct3 == 0x4) {
+    case 0x63: { // B-type Branches 110_0011 (BEQ/BNE/BLT/BGE/BLTU/BGEU)
+      if (funct3 == 0x0 || funct3 == 0x1 || funct3 == 0x4 ||
+          funct3 == 0x5 || funct3 == 0x6 || funct3 == 0x7) {
         uint32_t imm_bits = 0;
         imm_bits |= ((raw >> 31) & 0x01) << 12;
         imm_bits |= ((raw >>  7) & 0x01) << 11;

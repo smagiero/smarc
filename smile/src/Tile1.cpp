@@ -178,6 +178,9 @@ void Tile1::tick() {
           case 0x0: taken = exec_beq(*this, decoded); break; // BEQ
           case 0x1: taken = exec_bne(*this, decoded); break; // BNE
           case 0x4: taken = exec_blt(*this, decoded); break; // BLT
+          case 0x5: taken = exec_bge(*this, decoded); break; // BGE
+          case 0x6: taken = exec_bltu(*this, decoded); break; // BLTU
+          case 0x7: taken = exec_bgeu(*this, decoded); break; // BGEU
           default: break;
         }
         if (taken) {

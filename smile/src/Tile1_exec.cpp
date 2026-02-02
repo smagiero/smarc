@@ -245,6 +245,27 @@ bool exec_blt(Tile1& tile, const Instruction& instr) {
   return lhs < rhs;
 }
 
+bool exec_bge(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.b;
+  const int32_t lhs = static_cast<int32_t>(tile.read_reg(op.rs1));
+  const int32_t rhs = static_cast<int32_t>(tile.read_reg(op.rs2));
+  return lhs >= rhs;
+}
+
+bool exec_bltu(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.b;
+  const uint32_t lhs = tile.read_reg(op.rs1);
+  const uint32_t rhs = tile.read_reg(op.rs2);
+  return lhs < rhs;
+}
+
+bool exec_bgeu(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.b;
+  const uint32_t lhs = tile.read_reg(op.rs1);
+  const uint32_t rhs = tile.read_reg(op.rs2);
+  return lhs >= rhs;
+}
+
 uint32_t exec_jal(Tile1& tile, const Instruction& instr, uint32_t curr_pc) {
   const auto& op = instr.j;
   tile.write_reg(op.rd, curr_pc + 4u);

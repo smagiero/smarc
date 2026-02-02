@@ -9,6 +9,7 @@ Regression tests (exit code 1 on pass, 0 on fail):
 - rtype_logic_test.c: SUB/XOR/OR/AND sanity check
 - rtype_slt_test.c: SLT/SLTU sanity check
 - rtype_shift_test.c: SLL/SRL/SRA sanity check
+- branch_bxx_test.c: BGE/BLTU/BGEU sanity check
 
 Build/run snippet (from repo root, replace <test>.c):
 ```
