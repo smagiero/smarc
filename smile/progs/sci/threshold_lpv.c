@@ -1,19 +1,19 @@
 // **********************************************************************
-// smile/progs/sci/sum_lpv.c
+// smile/progs/sci/threshold_lpv.c
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Feb 1 2026
 /*
- * Scientific LPV-style sum kernel.
- * Uses LPV data at 0x00000200 and writes the sum to 0x00000100,
- * then exits via ECALL 93 with the sum as the exit code.
+ * Threshold-and-count LPV-style kernel for smile.
+ * Initializes LPV data at 0x00000200, counts values > THRESH,
+ * writes the count to 0x00000104, and exits with that count.
  */
 #include <stdint.h>
 
-#define LPV_BASE  ((volatile uint32_t *)0x00000200)
-#define SUM_ADDR  ((volatile uint32_t *)0x00000100)
+#define LPV_BASE   ((volatile uint32_t *)0x00000200)
+#define COUNT_ADDR ((volatile uint32_t *)0x00000104)
 #define N 16
+#define THRESH 8
 
-// stack setup and entry point
 __attribute__((naked, section(".text.start")))
 void _start(void) {
   __asm__ volatile (
@@ -22,7 +22,6 @@ void _start(void) {
   );
 }
 
-// exit via ecall 93 with given code in a0
 static inline void exit_with_code(uint32_t code) {
   __asm__ volatile (
     "mv a0, %0\n"
@@ -35,19 +34,20 @@ static inline void exit_with_code(uint32_t code) {
   for (;;) {}
 }
 
-// main sum kernel
 int main(void) {
   uint32_t i;
   for (i = 0; i < N; ++i) {
     LPV_BASE[i] = i + 1;
   }
 
-  uint32_t acc = 0;
+  uint32_t count = 0;
   for (i = 0; i < N; ++i) {
-    acc += LPV_BASE[i];
+    if (LPV_BASE[i] > THRESH) {
+      ++count;
+    }
   }
 
-  *SUM_ADDR = acc;
-  exit_with_code(acc);
+  *COUNT_ADDR = count;
+  exit_with_code(count);
   return 0;
 }
