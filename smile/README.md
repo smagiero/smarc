@@ -34,7 +34,7 @@ First we need to cross-compile and link our C code into a 32-b RISC-V ELF that b
 ```bash
 # Cross-compile & link smurf.c into RV32I ELF (no M,A,F,D)
 # -Os:           :optimize for size
-# rv32i_zicsr    :generate RV32i instr ()
+# rv32i_zicsr    :generate RV32i instr (no HW mult/div, no atomics, no float)
 # ilp32          :means ints, longs, and pointers are all 32b ABI
 # freestanding   :no OS, so compiler can't expect printf, exit, startup code,..., you provide own entry stack
 # nostdlib       :prevents linking in libc, libgcc, or crt0.o, 
