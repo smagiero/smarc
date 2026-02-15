@@ -424,22 +424,32 @@ void exec_remu(Tile1& tile, const Instruction& instr) {
 
 // Custom extension hooks
 void exec_custom0(Tile1& tile, const Instruction& instr) {
+  const auto& op = instr.r;              // treat instr as R-type
   AccelPort* accel = tile.accelerator(); // call Tile1's accessor to get accel pointer accel_port_
-  if (!accel) {
-    tile.request_illegal_instruction();  // trap if nullptr
+  if (!accel) { // no trap on missing accelerator, just return unsupported code if rd != x0
+    // v1 contract: missing accelerator returns ACCEL_E_UNSUPPORTED (see smile/docs/accel_port.md).
+    if (op.rd != 0) {
+      tile.write_reg(op.rd, 1u); // ACCEL_E_UNSUPPORTED
+    }
     return;
   }
 
-  const auto& op = instr.r;                       // treat instr as R-type
   const uint32_t rs1_val = tile.read_reg(op.rs1); // read rs1
   const uint32_t rs2_val = tile.read_reg(op.rs2); // read rs2
 
   accel->issue(instr.raw, tile.pc(), rs1_val, rs2_val); // issue custom instruction to accel
 
-  if (accel->has_response() && op.rd != 0) {      // if accel has response & rd != x0
-    const uint32_t resp = accel->read_response(); // read rd result from accel
-    tile.write_reg(op.rd, resp);
+  if (accel->has_response()) {
+    const uint32_t resp = accel->read_response();
+    if (op.rd != 0) {                            // if accel has response & rd != x0
+      tile.write_reg(op.rd, resp);               // read rd result from accel
+    }
+    return;
   }
+  // issue-once semantics; if no immediate resp, arm wait state
+  tile.accel_wait_ = true;
+  tile.accel_rd_ = op.rd;
+  tile.accel_next_pc_ = tile.pc() + 4u;
 }
 
 void exec_custom1(Tile1& tile, const Instruction& /*instr*/) { // stubbed to trap for now

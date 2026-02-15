@@ -34,6 +34,9 @@ void Tile1::tick() {
   }
 
   mem_port_->cycle(); // advance mem model by CPU cycle (to simulate latency)
+  if (accel_port_) {
+    accel_port_->tick(); // accelerator tick each cycle
+  }
 
   // If we're waiting on an instr fetch response, stall until it arrives
   if (ifetch_wait_) {
@@ -49,6 +52,30 @@ void Tile1::tick() {
     const uint32_t resp = mem_port_->resp_data();
     mem_port_->resp_consume();
     complete_dmem(resp);                   // finishes load/store op and advances PC
+    return;
+  }
+  if (accel_wait_) { // If we're waiting on an accelerator response, stall until it arrives
+    if (!accel_port_) { // defensive missing accelerator check
+      if (accel_rd_ != 0) {
+        write_reg(accel_rd_, 1u); // ACCEL_E_UNSUPPORTED
+      }
+      pc_ = accel_next_pc_;
+      accel_wait_ = false;
+      accel_rd_ = 0;
+      accel_next_pc_ = 0;
+      regs_[0] = 0;
+      return;
+    }
+    if (!accel_port_->has_response()) return; // stall until accelerator has a response
+    const uint32_t resp = accel_port_->read_response();
+    if (accel_rd_ != 0) {
+      write_reg(accel_rd_, resp);
+    }
+    pc_ = accel_next_pc_;
+    accel_wait_ = false;
+    accel_rd_ = 0;
+    accel_next_pc_ = 0;
+    regs_[0] = 0;
     return;
   }
 
@@ -469,6 +496,11 @@ void Tile1::tick() {
     default:
       break;
   }
+  // accelerator can progress while core is stalled
+  if (accel_wait_) { // after EXECUTE: prevent PC advance on issue cycle when wait armed
+    regs_[0] = 0;
+    return; // CUSTOM-0 armed a multi-cycle wait; hold PC on the issuing instruction
+  }
   
   // ******************
   // 4. TRAP HANDLING
@@ -505,6 +537,9 @@ void Tile1::reset() {
   dmem_store_mask_     = 0;
   dmem_store_shift_    = 0;
   dmem_next_pc_        = 0;
+  accel_wait_          = false;
+  accel_rd_            = 0;
+  accel_next_pc_       = 0;
   halted_              = false;
   exited_              = false;
   exit_code_           = 0;

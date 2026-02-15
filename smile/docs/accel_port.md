@@ -28,7 +28,7 @@ v1 verb selection rules:
 - `rs1` = `arg0` (often an address, verb-specific)
 - `rs2` = `arg1` (often a length or pointer, verb-specific)
 - `rd`  = 32-bit return payload (verb-specific)
-- If `rd == x0`, the return payload is discarded.
+- If `rd == x0`, the return payload is discarded (command not looking for any status return).
 
 ## 5) Completion Semantics (Blocking)
 
@@ -39,9 +39,9 @@ v1 completion is blocking:
 
 ## 6) Error Policy (No Trap for Missing/Unsupported Accelerator)
 
-Missing accelerator and unsupported verb are interface-level conditions, not illegal instruction traps in v1.
+Missing accelerator and unsupported verb are interface-level conditions, not illegal instruction traps in v1.  If accelerator is missing and `rd!=0`, return `ACCEL_E_UNSUPPORTED` in `rd` and continue execution.  If accelerator is missing and `rd==0`, just continue execution without returning a code (so it's a silent fail).  If accelerator is present but does not support the requested verb, return `ACCEL_E_UNSUPPORTED` in `rd`.
 
-Required behavior:
+Required behavior (more succinctly):
 - If no accelerator is attached, the core must return immediately with `rd = ACCEL_E_UNSUPPORTED` (unless `rd == x0`) and continue.
 - If an accelerator is attached but does not support the requested verb, it must return `ACCEL_E_UNSUPPORTED`.
 

@@ -153,6 +153,8 @@ public:
   const AccelPort* accelerator()   const { return accel_port_; }
 
 private:
+  friend void exec_custom0(Tile1& tile, const Instruction& instr);
+
   enum class DmemOp : uint8_t {
     None = 0,
     LW,
@@ -217,6 +219,9 @@ private:
   uint32_t dmem_store_mask_ = 0;
   uint32_t dmem_store_shift_ = 0;
   uint32_t dmem_next_pc_ = 0;   // PC to apply after completion
+  bool accel_wait_ = false;     // waiting for accelerator response after CUSTOM-0 issue
+  uint32_t accel_rd_ = 0;       // destination rd captured on CUSTOM-0 issue
+  uint32_t accel_next_pc_ = 0;  // PC to apply when accelerator response completes
 
   // Private state for halt/exit tracking
   bool halted_ = false;              // has core stopped (due to some interrupt or exit)
