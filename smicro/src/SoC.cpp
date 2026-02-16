@@ -51,6 +51,7 @@ Planned evolution:
 
 */
 #include "SoC.hpp"
+#include "AccelMemBridge.hpp"
 
 using namespace Cascade;
 
@@ -64,6 +65,7 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   // ---- Allocate blocks ----
   // core_   = new RvCore("core");
   core_   = new Tile1Core("core");   // Tile1Core: minimal wrapper to host Tile1 in smicro
+  ab_     = new AccelMemBridge("ab");
   tester_ = new MemTester("tester");
   l1_     = new L1("l1");
   l2_     = new L2("l2");
@@ -72,7 +74,7 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   accel_  = new NnAccel("accel", mode);
 
   // ---- Clocking ----
-  core_->clk << clk; tester_->clk << clk; l1_->clk << clk; l2_->clk << clk; dram_->clk << clk; mem_->clk << clk; accel_->clk << clk;
+  core_->clk << clk; ab_->clk << clk; tester_->clk << clk; l1_->clk << clk; l2_->clk << clk; dram_->clk << clk; mem_->clk << clk; accel_->clk << clk;
 
   // // ---- Smoke-test wiring: bypass caches/accel; wire core <-> DRAM directly ----
   // // Core/TestMaster <-> MemCtrl
@@ -101,6 +103,9 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
     // Disable core ports when tester is driving MemCtrl
     core_->m_req.sendToBitBucket();
     core_->m_resp.wireToZero();
+    // Disable bridge ports when tester is driving MemCtrl
+    ab_->m_req.sendToBitBucket();
+    ab_->m_resp.wireToZero();
     // Tester -> MemCtrl
     mem_->in_core_req   << tester_->m_req;
     tester_->m_resp     << mem_->out_core_resp;
@@ -112,8 +117,9 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
     // so we do not connect it to MemCtrl's core-side ports.
     core_->m_req.sendToBitBucket();        //   core -> bucket
     core_->m_resp.wireToZero();            //   core <- 0
-    mem_->in_core_req.wireToZero();        //      0 -> mem ctrl input: seen as permanently empty by MemCtrl
-    mem_->out_core_resp.sendToBitBucket(); // bucket <- mem ctrl output: any responses are discarded
+    // Bridge -> MemCtrl (accelerator memory bridge is the active MemCtrl client)
+    mem_->in_core_req   << ab_->m_req;
+    ab_->m_resp         << mem_->out_core_resp;
   }
 
   // MemCtrl <-> DRAM (DRAM is zero-latency storage) 
@@ -165,6 +171,7 @@ void SoC::attach_accelerator(AccelPort* accel) {
 SoC::~SoC() {
   g_soc = nullptr;    // invalidate global first to avoid dangling global during child deletes
   delete accel_;
+  delete ab_;
   delete mem_;
   delete dram_;
   delete l2_;

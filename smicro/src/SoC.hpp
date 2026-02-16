@@ -26,6 +26,7 @@ update_resp() <- m_resp |<==| out_core_resp update_retire() s_resp |<==| s_resp
 #include <string>
 
 class AccelPort;
+class AccelMemBridge;
 
 using namespace Cascade; // ok in project headers (macros expect it), but avoid in sub-component headers
 
@@ -57,6 +58,7 @@ public:
   // Submodules (owned by SoC)
   // RvCore  *core_ = nullptr;
   Tile1Core *core_ = nullptr;
+  AccelMemBridge *ab_ = nullptr;
   MemTester *tester_ = nullptr;
   L1      *l1_   = nullptr;
   L2      *l2_   = nullptr;

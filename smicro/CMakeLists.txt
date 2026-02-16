@@ -3,6 +3,7 @@ file(GLOB SMICRO_BASE_SRCS
   src/SoC.cpp
   src/RvCore.cpp
   src/Tile1Core.cpp
+  src/AccelMemBridge.cpp
   src/MemCtrl.cpp
   src/L1.cpp
   src/L2.cpp
