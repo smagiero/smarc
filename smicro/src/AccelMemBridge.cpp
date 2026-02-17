@@ -8,8 +8,12 @@
 using namespace Cascade;
 
 AccelMemBridge::AccelMemBridge(std::string /*name*/, IMPL_CTOR) {
-  UPDATE(update).reads(m_resp).writes(m_req);
-}
+  /* UPDATE macro registers AccelMemBridge::update() w/ Cascade's scheduler
+  as a callback so it will be called once per sim cycle. Chained call declares 
+  .writes() and .reads() Casecade methods to be able to pop m_resp FIFO and 
+  push m_req FIFO.  Currently, we allow both actions to happen in same cycle. */
+  UPDATE(update).reads(m_resp).writes(m_req); 
+}                                                    
 
 bool AccelMemBridge::can_accept() const {
   return !have_pending_req_ && !waiting_resp_;
@@ -18,17 +22,17 @@ bool AccelMemBridge::can_accept() const {
 void AccelMemBridge::start_load32(uint32_t addr) {
   assert_always(can_accept(), "AccelMemBridge::start_load32 called while busy");
   have_pending_req_ = true;
-  is_store_ = false;
-  addr_ = addr;
-  data_ = 0;
+  is_store_         = false;
+  addr_             = addr;
+  data_             = 0;     // ignored for loads, but set to 0 for cleanliness
 }
 
 void AccelMemBridge::start_store32(uint32_t addr, uint32_t data) {
   assert_always(can_accept(), "AccelMemBridge::start_store32 called while busy");
   have_pending_req_ = true;
-  is_store_ = true;
-  addr_ = addr;
-  data_ = data;
+  is_store_         = true;
+  addr_             = addr;
+  data_             = data;
 }
 
 bool AccelMemBridge::resp_valid() const {
@@ -40,40 +44,41 @@ uint32_t AccelMemBridge::resp_data() const {
 }
 
 void AccelMemBridge::resp_consume() {
-  resp_valid_ = false;
-  resp_data_ = 0;
+  resp_valid_ = false; // clear sticky response valid; caller must explicitly consume each response
+  resp_data_  = 0;
 }
 
 void AccelMemBridge::update() {
-  // Launch one pending request when request FIFO can accept it.
-  if (have_pending_req_ && !m_req.full()) {
+  // Launch one pending request when request FIFO can accept it
+  // (using .full or .push needs write() declare in IMPL_CTOR)
+  if (have_pending_req_ && !m_req.full()) { 
     MemReq req{};
-    req.addr = static_cast<u64>(addr_);
+    req.addr  = static_cast<u64>(addr_);
     req.wdata = static_cast<u64>(data_);
-    req.size = static_cast<u16>(4); // 32-bit transfer
+    req.size  = static_cast<u16>(4); // 32-bit transfer
     req.write = is_store_;
-    req.id = static_cast<u16>(0);
+    req.id    = static_cast<u16>(0);
 
-    m_req.push(req);
+    m_req.push(req); // using push() .writes(m_req)
     have_pending_req_ = false;
-    waiting_resp_ = true;
+    waiting_resp_     = true;
   }
 
-  // Retire one response when waiting and available.
+  // Retire one response when waiting and available
   if (waiting_resp_ && !resp_valid_ && !m_resp.empty()) {
     const MemResp resp = m_resp.pop();
-    resp_data_ = static_cast<uint32_t>(resp.rdata);
-    resp_valid_ = true;
-    waiting_resp_ = false;
+    resp_data_         = static_cast<uint32_t>(resp.rdata);
+    resp_valid_        = true; // becomes "sticky" (i.e., hold it until its consumed)
+    waiting_resp_      = false;
   }
 }
 
 void AccelMemBridge::reset() {
   have_pending_req_ = false;
-  is_store_ = false;
-  addr_ = 0;
-  data_ = 0;
-  waiting_resp_ = false;
-  resp_valid_ = false;
-  resp_data_ = 0;
+  is_store_         = false;
+  addr_             = 0;
+  data_             = 0;
+  waiting_resp_     = false;
+  resp_valid_       = false;
+  resp_data_        = 0;
 }

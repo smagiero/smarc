@@ -10,8 +10,8 @@ then issue a read, check resp against pattern, and park.
 #include "RvCore.hpp"
 
 RvCore::RvCore(std::string /*name*/, IMPL_CTOR) { // constructor registers two update fns. so req/resp paths can be 0-delay w/o comp loops
-  UPDATE(update_req).writes(m_req);  // register update_req with Cascade's scheduler
-  UPDATE(update_resp).reads(m_resp); // register update_resp with Cascade's scheduler
+  UPDATE(update_req).writes(m_req);  // reg update_req w/ Cascade's scheduler (i.e., it will be called once per sim cycle)
+  UPDATE(update_resp).reads(m_resp); // reg update_resp w/ Cascade's scheduler
 }
 
 void RvCore::update_req() { // issue requests
