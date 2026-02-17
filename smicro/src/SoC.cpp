@@ -65,7 +65,7 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   // ---- Allocate blocks ----
   // core_   = new RvCore("core");
   core_   = new Tile1Core("core");    // Tile1Core: minimal wrapper to host Tile1 in smicro
-  ab_     = new AccelMemBridge("ab"); //
+  ab_     = new AccelMemBridge("ab"); // bridge between accelerator and MemCtrl (implements MemReq/MemResp ifc on one side, and a custom accelerator-friendly ifc on the other)
   tester_ = new MemTester("tester");
   l1_     = new L1("l1");
   l2_     = new L2("l2");

@@ -16,23 +16,36 @@ AccelMemBridge::AccelMemBridge(std::string /*name*/, IMPL_CTOR) {
 }                                                    
 
 bool AccelMemBridge::can_accept() const {
-  return !have_pending_req_ && !waiting_resp_;
+  return (phase_ == Phase::IDLE) && !resp_valid_;
 }
 
+// queue up the load 
 void AccelMemBridge::start_load32(uint32_t addr) {
   assert_always(can_accept(), "AccelMemBridge::start_load32 called while busy");
-  have_pending_req_ = true;
-  is_store_         = false;
-  addr_             = addr;
-  data_             = 0;     // ignored for loads, but set to 0 for cleanliness
+  assert_always((addr & 0x3u) == 0u, "AccelMemBridge::start_load32 requires 4-byte alignment");
+  // require addr to be in one of 32-bit lanes of 8-byte word
+  assert_always(((addr & 0x7u) == 0u) || ((addr & 0x7u) == 4u), "AccelMemBridge::start_load32 lane must be +0 or +4");
+
+  aligned_addr_ = static_cast<uint64_t>(addr & ~0x7u); // compute aligned 64-b addr
+  upper_lane_   = ((addr >> 2) & 0x1u) != 0;           // which lane do we want 0 [31:0] or 1 [63:32]
+  store_data32_ = 0;                                   // clear store…
+  rmw_word64_   = 0;                                   // …related scratch (not used for load but just to be safe)
+  op_kind_      = OpKind::LOAD32;
+  phase_        = Phase::ISSUE_LOAD64;                 // push 64-b load
 }
 
+// queue up the store (implemented as read-modify-write (RMW) under the hood since MemCtrl is 64-bit)
 void AccelMemBridge::start_store32(uint32_t addr, uint32_t data) {
   assert_always(can_accept(), "AccelMemBridge::start_store32 called while busy");
-  have_pending_req_ = true;
-  is_store_         = true;
-  addr_             = addr;
-  data_             = data;
+  assert_always((addr & 0x3u)  == 0u, "AccelMemBridge::start_store32 requires 4-byte alignment");
+  assert_always(((addr & 0x7u) == 0u) || ((addr & 0x7u) == 4u), "AccelMemBridge::start_store32 lane must be +0 or +4");
+
+  aligned_addr_ = static_cast<uint64_t>(addr & ~0x7u);
+  upper_lane_   = ((addr >> 2) & 0x1u) != 0;
+  store_data32_ = data;
+  rmw_word64_   = 0;
+  op_kind_      = OpKind::STORE32;
+  phase_        = Phase::ISSUE_LOAD64;
 }
 
 bool AccelMemBridge::resp_valid() const {
@@ -49,36 +62,69 @@ void AccelMemBridge::resp_consume() {
 }
 
 void AccelMemBridge::update() {
-  // Launch one pending request when request FIFO can accept it
-  // (using .full or .push needs write() declare in IMPL_CTOR)
-  if (have_pending_req_ && !m_req.full()) { 
+  if (phase_ == Phase::ISSUE_LOAD64 && !m_req.full()) {
     MemReq req{};
-    req.addr  = static_cast<u64>(addr_);
-    req.wdata = static_cast<u64>(data_);
-    req.size  = static_cast<u16>(4); // 32-bit transfer
-    req.write = is_store_;
+    req.addr  = static_cast<u64>(aligned_addr_);
+    req.wdata = static_cast<u64>(0);
+    req.size  = static_cast<u16>(8); // MemCtrl requires 8-byte granularity
+    req.write = false;
     req.id    = static_cast<u16>(0);
 
-    m_req.push(req); // using push() .writes(m_req)
-    have_pending_req_ = false;
-    waiting_resp_     = true;
+    m_req.push(req);
+    phase_ = Phase::WAIT_LOAD64_RESP;
   }
 
-  // Retire one response when waiting and available
-  if (waiting_resp_ && !resp_valid_ && !m_resp.empty()) {
-    const MemResp resp = m_resp.pop();
-    resp_data_         = static_cast<uint32_t>(resp.rdata);
-    resp_valid_        = true; // becomes "sticky" (i.e., hold it until its consumed)
-    waiting_resp_      = false;
+  if (phase_ == Phase::WAIT_LOAD64_RESP && !m_resp.empty()) {
+    const MemResp resp         = m_resp.pop();
+    const uint64_t loaded_word = static_cast<uint64_t>(resp.rdata);
+
+    if (op_kind_ == OpKind::LOAD32) {
+      resp_data_ = upper_lane_
+        ? static_cast<uint32_t>((loaded_word >> 32) & 0xffffffffull)
+        : static_cast<uint32_t>(loaded_word & 0xffffffffull);
+      resp_valid_ = true;
+      op_kind_    = OpKind::NONE;
+      phase_      = Phase::IDLE;
+    } else if (op_kind_ == OpKind::STORE32) {
+      const uint64_t lane_mask = upper_lane_ ? 0xffffffff00000000ull : 0x00000000ffffffffull;
+      const uint64_t lane_data = upper_lane_
+        ? (static_cast<uint64_t>(store_data32_) << 32)
+        : static_cast<uint64_t>(store_data32_);
+      rmw_word64_ = (loaded_word & ~lane_mask) | lane_data;
+      phase_ = Phase::ISSUE_STORE64;
+    } else {
+      assert_always(false, "AccelMemBridge internal error: WAIT_LOAD64_RESP without active op");
+    }
+  }
+
+  if (phase_ == Phase::ISSUE_STORE64 && !m_req.full()) {
+    MemReq req{};
+    req.addr  = static_cast<u64>(aligned_addr_);
+    req.wdata = static_cast<u64>(rmw_word64_);
+    req.size  = static_cast<u16>(8); // MemCtrl requires 8-byte granularity
+    req.write = true;
+    req.id    = static_cast<u16>(0);
+
+    m_req.push(req);
+    phase_ = Phase::WAIT_STORE64_ACK;
+  }
+
+  if (phase_ == Phase::WAIT_STORE64_ACK && !m_resp.empty()) {
+    (void)m_resp.pop(); // ACK response (payload ignored for store completion)
+    resp_data_  = 0;
+    resp_valid_ = true;
+    op_kind_    = OpKind::NONE;
+    phase_      = Phase::IDLE;
   }
 }
 
 void AccelMemBridge::reset() {
-  have_pending_req_ = false;
-  is_store_         = false;
-  addr_             = 0;
-  data_             = 0;
-  waiting_resp_     = false;
-  resp_valid_       = false;
-  resp_data_        = 0;
+  op_kind_      = OpKind::NONE;
+  phase_        = Phase::IDLE;
+  aligned_addr_ = 0;
+  upper_lane_   = false;
+  store_data32_ = 0;
+  rmw_word64_   = 0;
+  resp_valid_   = false;
+  resp_data_    = 0;
 }

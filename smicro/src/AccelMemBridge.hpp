@@ -6,7 +6,10 @@
 Tiny MemCtrl client shim for accelerators to facilitate more realistic SoC-memory paths for accelerators.
 
 Sits on the MemReq/MemResp protocol boundary (same as RvCore / MemTester).
-Accelerator (or other host) calls start_load32/start_store32(), and this bridge turns that into exactly one MemReq and then waits for exactly one MemResp.
+Accelerator (or other host) calls start_load32/start_store32(), and this bridge
+converts those 32-bit operations into MemCtrl-compatible 8-byte MemReq traffic.
+Load32 issues one aligned 64-bit load and selects a 32-bit lane.
+Store32 performs an internal RMW sequence (load64 -> merge lane -> store64).
 
 host API
   +-------------------- AccelMemBridge --------------------+
@@ -27,7 +30,8 @@ update()             |   |                                      |   |
 ---------------------+   +--------------------------------------+   +----------
 
 Notes / v1 constraints:
-- Single-outstanding: at most one request in flight (plus at most one pending req).
+- Single-outstanding: one host operation at a time; internal RMW uses sequential
+  requests while the bridge remains busy.
 - Blocking-style completion: resp_valid() stays true until resp_consume().
 - Stores also wait for a MemResp "ack" (assumes MemCtrl returns a completion resp).
 - The Tile1 core in smicro is *not* on this MemCtrl path yet; Tile1Core still talks
@@ -50,8 +54,9 @@ public:
   FifoOutput(MemReq,  m_req);   
   FifoInput (MemResp, m_resp);
 
-  // Host-facing non-blocking API (single outstanding request)
-  bool can_accept() const; // true  iff no request is pending/enqueued and no request is in flight
+  // Host-facing non-blocking API (single outstanding operation)
+  // true iff no operation is active and no unconsumed response is latched.
+  bool can_accept() const;
 
   void start_load32(uint32_t addr);
   void start_store32(uint32_t addr, uint32_t data);
@@ -64,14 +69,28 @@ public:
   void reset();
 
 private:
-  // One pending request that has not yet been pushed to m_req
-  bool have_pending_req_ = false;
-  bool is_store_         = false;
-  uint32_t addr_         = 0;
-  uint32_t data_         = 0;
+  enum class OpKind : uint8_t {
+    NONE,
+    LOAD32,
+    STORE32
+  };
 
-  // One in-flight request waiting for MemResp
-  bool waiting_resp_ = false;
+  enum class Phase : uint8_t {
+    IDLE,
+    ISSUE_LOAD64,
+    WAIT_LOAD64_RESP,
+    ISSUE_STORE64,
+    WAIT_STORE64_ACK
+  };
+
+  OpKind op_kind_ = OpKind::NONE;
+  Phase phase_    = Phase::IDLE;
+
+  // Captured host request context.
+  uint64_t aligned_addr_ = 0;
+  bool upper_lane_       = false; // false: [31:0], true: [63:32]
+  uint32_t store_data32_ = 0;     // used for STORE32
+  uint64_t rmw_word64_   = 0;     // merged store payload after RMW load
 
   // Sticky response latch (must be consumed explicitly)
   bool resp_valid_    = false;
