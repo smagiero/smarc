@@ -18,6 +18,34 @@ How it works:
   uint32_t sum, and finally publishes a sticky response (sum) to the core.
 - Completion is reported through has_response()/read_response() per AccelPort v1.
 
+Mini topology (where this block sits in smicro):
+
+        Tile1 (exec CUSTOM-0)
+               |
+               |  AccelPort::issue()/has_response()
+               v
+        +------------------+
+        | AccelArraySumSoc |
+        |  (tick() FSM)    |
+        +------------------+
+               |
+               |  host API: start_load32()/resp_*()
+               v
+        +------------------+
+        |  AccelMemBridge  |
+        | (MemReq/MemResp) |
+        +------------------+
+               |
+               |  MemCtrl protocol FIFOs
+               v
+        +------------------+      +--------+
+        |      MemCtrl      |<--->|  Dram  |
+        +------------------+      +--------+
+
+Notes:
+- Tile1 stalls while AccelArraySumSoc is busy; the accelerator progresses via tick().
+- Memory traffic is via MemCtrl timing (through AccelMemBridge), not Tile1's private DRAM shim.
+
 Key point:
 - This is not software running on Tile1; it is a simulated accelerator “hardware”
   block that performs memory reads through MemCtrl timing and returns a result

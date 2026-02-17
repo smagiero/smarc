@@ -92,6 +92,10 @@ void Tile1Core::attach_accelerator(AccelPort* accel) {
   tile_.attach_accelerator(accel);
 }
 
+void Tile1Core::set_pc(uint32_t pc) {
+  tile_.set_pc(pc);
+}
+
 void Tile1Core::update() {
   tile_.tick();   // for now: just tick Tile1. Memory is handled synchronously via DramMemoryPort.
 }

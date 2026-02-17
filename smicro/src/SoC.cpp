@@ -48,7 +48,6 @@ Smoke-test topologies (no caches; accel off)
 Planned evolution:
     Later, Tile1Core will grow a small LSU that drives m_req/m_resp directly, replacing
     MemTester as the MemCtrl client so the real core exercises the same MemReq/MemResp path.
-
 */
 #include "SoC.hpp"
 #include "AccelMemBridge.hpp"
@@ -128,9 +127,14 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   // MemCtrl <-> DRAM (DRAM is zero-latency storage) 
   dram_->s_req        << mem_->s_req;      //           mem ctrl -> dram
   mem_->s_resp        << dram_->s_resp;    //           mem ctrl <- dram
-  // 0/0 delays end-to-end; MemCtrl owns timing
-  mem_->in_core_req.setDelay(0);
-  mem_->out_core_resp.setDelay(0);
+  // Break req/resp combinational feedback when bridge drives MemCtrl directly.
+  if (use_test_driver_) {
+    mem_->in_core_req.setDelay(0);
+    mem_->out_core_resp.setDelay(0);
+  } else {
+    mem_->in_core_req.setDelay(1);
+    mem_->out_core_resp.setDelay(1);
+  }
   mem_->s_req.setDelay(0);
   mem_->s_resp.setDelay(0);
 

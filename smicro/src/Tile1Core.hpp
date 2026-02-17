@@ -26,6 +26,7 @@ Tile1Core: minimal wrapper to host Tile1 inside smicro ecosystem.
 */
 #pragma once
 #include <cascade/Cascade.hpp>
+#include <cstdint>
 #include "MemTypes.hpp"
 #include "Tile1.hpp"        // tile from smile
 #include "Dram.hpp"         // if you want to connect DRAM
@@ -50,6 +51,7 @@ public:
   void reset();
   void attach_dram(Dram* dram); // let SoC give Tile1Core a DRAM to talk to
   void attach_accelerator(AccelPort* accel);
+  void set_pc(uint32_t pc);
 
 private:
   Tile1 tile_;                  // the actual RISC-V core
