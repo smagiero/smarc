@@ -73,6 +73,7 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   dram_   = new Dram("dram", /*latency cycles*/ 0);
   mem_    = new MemCtrl("mem");
   accel_  = new NnAccel("accel", mode);
+  ab_->set_addr_base(dram_->get_base());
 
   // ---- Clocking ----
   core_->clk << clk; ab_->clk << clk; tester_->clk << clk; l1_->clk << clk; l2_->clk << clk; dram_->clk << clk; mem_->clk << clk; accel_->clk << clk;

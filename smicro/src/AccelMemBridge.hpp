@@ -60,6 +60,7 @@ public:
 
   void start_load32(uint32_t addr);
   void start_store32(uint32_t addr, uint32_t data);
+  void set_addr_base(uint64_t base) { addr_base_ = base; }
 
   bool     resp_valid() const;
   uint32_t resp_data() const;
@@ -91,6 +92,7 @@ private:
   bool upper_lane_       = false; // false: [31:0], true: [63:32]
   uint32_t store_data32_ = 0;     // used for STORE32
   uint64_t rmw_word64_   = 0;     // merged store payload after RMW load
+  uint64_t addr_base_    = 0;     // CPU->physical translation base for emitted MemReq::addr
 
   // Sticky response latch (must be consumed explicitly)
   bool resp_valid_    = false;

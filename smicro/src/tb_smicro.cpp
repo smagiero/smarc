@@ -198,14 +198,15 @@ int main (int argc, char *argv[]) {
         out.push_back(encode_lui(rd, hi));
         out.push_back(encode_addi(rd, rd, lo));
       };
-      // 4) choose addresses and explain the two address space
+      // 4) choose addresses and explain the two address spaces
       // prog written into DRAM at dram_base + prog_base
       // PC set to prog_base (because Tile1Core::DramMemoryPort maps CPU address addr → DRAM dram_base + addr)
       // Mailbox is a CPU addr 0x100 that program stores into, and TB reads it back physically at dram_base + 0x100
+      // Array base passed to CUSTOM-0 is also a CPU address; AccelMemBridge adds dram_base for MemCtrl requests.
       const uint64_t dram_base    = soc.dram_->get_base();
       const uint32_t prog_base    = 0x200u;
-      const uint32_t mailbox_addr = 0x100u; // Tile1 CPU byte address; maps to DRAM base + 0x100 via DramMemoryPort
-      const uint32_t array_addr   = static_cast<uint32_t>(dram_base + 0x4000ull); // physical address used by accelerator path
+      const uint32_t mailbox_addr = 0x100u;  // Tile1 CPU byte address; maps to DRAM base + 0x100 via DramMemoryPort
+      const uint32_t array_addr   = 0x4000u; // Tile1 CPU byte address for array base
       const uint32_t len_words    = 16u;
       const uint64_t mailbox_phys = dram_base + static_cast<uint64_t>(mailbox_addr);
       const uint64_t prog_phys    = dram_base + static_cast<uint64_t>(prog_base);
@@ -214,7 +215,7 @@ int main (int argc, char *argv[]) {
       for (uint32_t i = 0; i < len_words; ++i) {
         const uint32_t v = i + 1u;
         expected += v;
-        const uint64_t phys = static_cast<uint64_t>(array_addr) + static_cast<uint64_t>(4u * i);
+        const uint64_t phys = dram_base + static_cast<uint64_t>(array_addr) + static_cast<uint64_t>(4u * i);
         soc.dram_->write(phys, &v, sizeof(v));
       }
       

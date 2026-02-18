@@ -30,6 +30,10 @@ v1 verb selection rules:
 - `rd`  = 32-bit return payload (verb-specific)
 - If `rd == x0`, the return payload is discarded (command not looking for any status return).
 
+Address note:
+- When a verb interprets `rs1`/`rs2` as pointers/addresses, they are CPU addresses in both `smile` and `smicro`.
+- In `smicro`, `AccelMemBridge` translates CPU addresses to DRAM physical addresses by adding DRAM base before emitting `MemReq`.
+
 ## 5) Completion Semantics (Blocking)
 
 v1 completion is blocking:
