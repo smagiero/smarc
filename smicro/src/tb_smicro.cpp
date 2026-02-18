@@ -7,9 +7,11 @@ SoC test harness with a single-switch suite to avoid ambiguity.
 Suites: 
 hal_* run only DRAM HAL at t=0 (no driver traffic). 
 proto_* run protocol timing via core or tester.
-some details
+proto_* notes:
 proto_accel_sum_altaddr: same test as proto_accel_sum but with alt addr mapping to verify addr translation in accelerator memory bridge (AccelMemBridge) and its interaction with DRAM base address.
 proto_accel_sum_badarg: sets array_addr = 0x4002 (not 4-byte aligned) and verifies return to mailbox of error code ACCEL_E_BADARG
+proto_accel_sum_unsupported: test verb decode (accel does not accidentally run on wrong funct3)
+proto_accel_sum_twice: can accel be used again after completing one op? do we accidentally carry state across invocations?
 
 to configure, build, and run:
 cedar % cmake -S . -B build  -DCEDAR_DIR=/Users/seb/Research/Cascade/cedar -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -48,7 +50,7 @@ using namespace std;
 StringParameter(topo,       "via_l2", "Topology: via_l1|via_l2|dram|priv"); // defaults topo is via_l2
 IntParameter(steps,          0,      "Batch steps; 0=interactive");
 // New single-switch suite
-StringParameter(suite,      "proto_core", "Suite: hal_none|hal_multi|hal_bounds|proto_core|proto_accel_sum|proto_accel_sum_altaddr|proto_accel_sum_badarg|proto_raw|proto_no_raw|proto_rar|proto_lat");
+StringParameter(suite,      "proto_core", "Suite: hal_none|hal_multi|hal_bounds|proto_core|proto_accel_sum|proto_accel_sum_altaddr|proto_accel_sum_badarg|proto_accel_sum_unsupported|proto_raw|proto_no_raw|proto_rar|proto_lat");
 IntParameter(mem_latency,     3, "MemCtrl latency (cycles)");
 IntParameter(dram_latency,   -1, "[deprecated] use -mem_latency; if >=0 overrides mem_latency");
 BoolParameter(drain,         false, "After run, fence: keep stepping until posted stores drain");
@@ -83,7 +85,7 @@ int main (int argc, char *argv[]) {
   bool is_hal   = S.rfind("hal_",   0) == 0;         // search backward up to index 0; if matches return 0
   bool is_proto = S.rfind("proto_", 0) == 0;
   assert_always(is_hal || is_proto, "unknown -suite"); // descore assertion that's never compiled-out, if cond fails prints message & aborts 
-  bool use_tester = is_proto && (S != "proto_core") && (S != "proto_accel_sum") && (S != "proto_accel_sum_altaddr") && (S != "proto_accel_sum_badarg"); // tester for proto_* except core-driven suites
+  bool use_tester = is_proto && (S != "proto_core") && (S != "proto_accel_sum") && (S != "proto_accel_sum_altaddr") && (S != "proto_accel_sum_badarg") && (S != "proto_accel_sum_unsupported"); // tester for proto_* except core-driven suites
   SoC soc(parse_mode(topo), use_tester);             // invoke SoC object in desired config
   
   // **************
@@ -168,7 +170,7 @@ int main (int argc, char *argv[]) {
     }
     // 1) Proto_accel_sum: core-driven test of accelerator sum protocol 
     // exercises: Tile1 issues CUSTOM-0 → AccelArraySumSoc runs → AccelMemBridge talks to MemCtrl → Dram
-    if ((s == "proto_accel_sum") || (s == "proto_accel_sum_altaddr") || (s == "proto_accel_sum_badarg")) {
+    if ((s == "proto_accel_sum") || (s == "proto_accel_sum_altaddr") || (s == "proto_accel_sum_badarg") || (s == "proto_accel_sum_unsupported")) {
       // enforce the right topology
       assert_always(!use_tester, "proto_accel_sum requires core driver (use_test_driver=false)");
       assert_always(soc.dram_ != nullptr, "proto_accel_sum: missing DRAM");
@@ -216,9 +218,10 @@ int main (int argc, char *argv[]) {
       const uint32_t prog_base    = 0x200u;
       const uint32_t mailbox_addr = 0x100u;  // Tile1 CPU byte address; maps to DRAM base + 0x100 via DramMemoryPort
       const uint32_t array_addr   = (s == "proto_accel_sum_altaddr") ? 0x6000u :
-                                    ((s == "proto_accel_sum_badarg") ? 0x4002u : 0x4000u); // Tile1 CPU byte address for array base
+                                    ((s == "proto_accel_sum_badarg") ? 0x4002u : 0x4000u);   // Tile1 CPU byte address for array base
       const uint32_t init_base_cpu = (s == "proto_accel_sum_badarg") ? 0x4000u : array_addr; // keep DRAM test-data init aligned for badarg suite
       const uint32_t len_words    = 16u;
+      const uint32_t custom_funct3 = (s == "proto_accel_sum_unsupported") ? 1u : 0u; // choose unsupported funct3 for unsupported suite to verify verb decode
       const uint64_t mailbox_phys = cpu_to_phys(soc, mailbox_addr);
       const uint64_t prog_phys    = cpu_to_phys(soc, prog_base);
       // 6) initialize test data array in DRAM
@@ -237,7 +240,7 @@ int main (int argc, char *argv[]) {
       prog.reserve(16);
       emit_li(prog, 10u, array_addr);                    // a0 = base (arg0)
       emit_li(prog, 11u, len_words);                     // a1 = len  (arg1)
-      prog.push_back(encode_custom0(12u, 10u, 11u, 0u)); // a2 = custom0 array-sum
+      prog.push_back(encode_custom0(12u, 10u, 11u, custom_funct3)); // a2 = custom0 array-sum (or unsupported verb test)
       emit_li(prog, 5u, mailbox_addr);                   // t0 = mailbox cpu addr
       prog.push_back(encode_sw(12u, 5u, 0));             // sw a2, 0(t0)
       prog.push_back(encode_addi(17u, 0u, 93));          // a7 = 93 (exit syscall)
@@ -264,10 +267,14 @@ int main (int argc, char *argv[]) {
       if (s == "proto_accel_sum_badarg") {
         assert_always(got == 3u, "proto_accel_sum_badarg: expected ACCEL_E_BADARG");
         assert_always(got != expected_sum, "proto_accel_sum_badarg: unexpectedly matched valid sum");
+      } else if (s == "proto_accel_sum_unsupported") {
+        assert_always(got == 1u, "proto_accel_sum_unsupported: expected ACCEL_E_UNSUPPORTED");
+        assert_always(got != expected_sum, "proto_accel_sum_unsupported: unexpectedly matched valid sum");
       } else {
         assert_always(got == expected_sum, "proto_accel_sum: mailbox mismatch");
       }
-      const uint32_t expected = (s == "proto_accel_sum_badarg") ? 3u : expected_sum;
+      const uint32_t expected = (s == "proto_accel_sum_badarg") ? 3u :
+                                ((s == "proto_accel_sum_unsupported") ? 1u : expected_sum);
       std::cout << s << ": PASS got=0x" << std::hex << got
                 << " expected=0x" << expected << std::dec << std::endl;
       return true;

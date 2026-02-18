@@ -18,16 +18,16 @@ Instruction format is R-type:
 
 ## 3) Verb Selection
 
-v1 verb selection rules:
+Verb is shorthand for the function that my selected accelerator implmenents.  So essentially it refers to the accelerator, unless of course the accelerator implements individually identifiable functions/verbs. v1 verb selection rules:
 - `funct3` (3 bits) selects the verb (`ACCEL_*` ID).
 - `funct7` must be `0b0000000` for v1.
 - Non-zero `funct7` is reserved for future flags/extensions.
 
 ## 4) Register ABI (Stable Calling Convention)
 
-- `rs1` = `arg0` (often an address, verb-specific)
-- `rs2` = `arg1` (often a length or pointer, verb-specific)
-- `rd`  = 32-bit return payload (verb-specific)
+- `rs1` = `arg0` (often an address denoting location of key data, verb-specific)
+- `rs2` = `arg1` (often a length denoting amount of data to consume/produce or pointer, verb-specific)
+- `rd`  = 32-bit return payload (often a status code; more on this in payload conventions, verb-specific)
 - If `rd == x0`, the return payload is discarded (command not looking for any status return).
 
 Address note:
@@ -38,7 +38,7 @@ Address note:
 
 v1 completion is blocking:
 - The core issues the `CUSTOM-0` instruction and stalls until an accelerator response is available.
-- Once a response arrives, the core writes the 32-bit payload to `rd` (unless `rd == x0`) and then advances `pc += 4`.
+- Once a response arrives, the core writes the 32-bit (status or data) payload to `rd` (unless `rd == x0`) and then advances `pc += 4`.
 - Accelerators may be single-cycle (response in the issue cycle) or multi-cycle (response after internal work).
 
 ## 6) Error Policy (No Trap for Missing/Unsupported Accelerator)
