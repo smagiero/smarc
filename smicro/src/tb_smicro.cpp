@@ -8,10 +8,10 @@ Suites:
 hal_* run only DRAM HAL at t=0 (no driver traffic). 
 proto_* run protocol timing via core or tester.
 proto_* notes:
-proto_accel_sum_altaddr: same test as proto_accel_sum but with alt addr mapping to verify addr translation in accelerator memory bridge (AccelMemBridge) and its interaction with DRAM base address.
-proto_accel_sum_badarg: sets array_addr = 0x4002 (not 4-byte aligned) and verifies return to mailbox of error code ACCEL_E_BADARG
+proto_accel_sum_altaddr:     same test as proto_accel_sum but with alt addr mapping to verify addr translation in accelerator memory bridge (AccelMemBridge) and its interaction with DRAM base address.
+proto_accel_sum_badarg:      sets array_addr = 0x4002 (not 4-byte aligned) and verifies return to mailbox of error code ACCEL_E_BADARG
 proto_accel_sum_unsupported: test verb decode (accel does not accidentally run on wrong funct3)
-proto_accel_sum_twice: run b2b; can accel be used again after completing one op? do we accidentally carry state across invocations?
+proto_accel_sum_twice:       run b2b; can accel be used again after completing one op? do we accidentally carry state across invocations?
 
 to configure, build, and run:
 cedar % cmake -S . -B build  -DCEDAR_DIR=/Users/seb/Research/Cascade/cedar -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -81,12 +81,18 @@ int main (int argc, char *argv[]) {
   // **************
   // Step 2: Resolve suite and select traffic source; then build SoC
   // **************
-  std::string S = std::string(suite); // assign suite settings to variable S
-  bool is_hal   = S.rfind("hal_",   0) == 0;         // search backward up to index 0; if matches return 0
+  std::string S = std::string(suite);        // assign suite settings to variable S
+  bool is_hal   = S.rfind("hal_",   0) == 0; // search backward up to index 0; if matches, return 0
   bool is_proto = S.rfind("proto_", 0) == 0;
   assert_always(is_hal || is_proto, "unknown -suite"); // descore assertion that's never compiled-out, if cond fails prints message & aborts 
-  bool use_tester = is_proto && (S != "proto_core") && (S != "proto_accel_sum") && (S != "proto_accel_sum_altaddr") && (S != "proto_accel_sum_badarg") && (S != "proto_accel_sum_unsupported") && (S != "proto_accel_sum_twice"); // tester for proto_* except core-driven suites
-  SoC soc(parse_mode(topo), use_tester);             // invoke SoC object in desired config
+  bool use_tester = is_proto && 
+                    (S != "proto_core") && 
+                    (S != "proto_accel_sum") && 
+                    (S != "proto_accel_sum_altaddr") && 
+                    (S != "proto_accel_sum_badarg") && 
+                    (S != "proto_accel_sum_unsupported") && 
+                    (S != "proto_accel_sum_twice"); // tester for proto_* except core-driven suites
+  SoC soc(parse_mode(topo), use_tester);     // invoke SoC object in desired config
   
   // **************
   // Step 3: Optional: list component instance names and exit
@@ -175,7 +181,7 @@ int main (int argc, char *argv[]) {
       assert_always(!use_tester, "proto_accel_sum requires core driver (use_test_driver=false)");
       assert_always(soc.dram_ != nullptr, "proto_accel_sum: missing DRAM");
       assert_always(soc.core_ != nullptr, "proto_accel_sum: missing Tile1Core");
-      assert_always(soc.mem_ != nullptr, "proto_accel_sum: missing MemCtrl");
+      assert_always(soc.mem_  != nullptr, "proto_accel_sum: missing MemCtrl");
       // 2) reset sim to clean starting point
       Sim::reset(); 
       // 3) define tiny instr encoders (lambdas): build RV32 instr words (uint32_t) from fields (rd, rs1, rs2, imm, etc.)
@@ -226,7 +232,7 @@ int main (int argc, char *argv[]) {
       const uint64_t mailbox_phys  = cpu_to_phys(soc, mailbox_addr);
       const uint64_t mailbox1_phys = cpu_to_phys(soc, mailbox1_addr); // for b2b test
       const uint64_t prog_phys     = cpu_to_phys(soc, prog_base);
-      // 6) initialize test data array in DRAM
+      // 5) initialize test data array in DRAM
       uint32_t expected_sum = 0;
       for (uint32_t i = 0; i < len_words; ++i) {
         const uint32_t v = i + 1u;

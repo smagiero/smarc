@@ -38,9 +38,9 @@ Mini topology (where this block sits in smicro):
                |
                |  MemCtrl protocol FIFOs
                v
-        +------------------+      +--------+
-        |      MemCtrl      |<--->|  Dram  |
-        +------------------+      +--------+
+        +------------------+     +--------+
+        |      MemCtrl     |<--->|  Dram  |
+        +------------------+     +--------+
 
 Notes:
 - Tile1 stalls while AccelArraySumSoc is busy; the accelerator progresses via tick().

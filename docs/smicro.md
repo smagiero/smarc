@@ -5,6 +5,110 @@ title: smicro
 
 # smicro - Small SoC with Memory Subsystem
 
+`smicro` is a SoC topology sandbox, a test harness with (more) detailed interaction dynamics specified between the SoC's constituent parts.  It is meant to flesh out things like interconnect/memory-subsystem correctness, multi-client behaviour (a core is just one client), topology choices, etc.  In contrast, `smile` is meant to contain more detailed descriptions of cores in terms of instruction sets and micro-architectural behaviour, it treats ancillary components (memory and accelerators) as black boxes that, at most, are modeled with simple latency.  No attempt is made to account for interactions between the core and other SoC parts in much detail.  Thus, `smile` is meant to ensure that the core/tile itself is doing what we expect (tile correctness), and to check basic interactions with memory and accelerators at a high level (small mu-arch experiments).  This does include memory timing, but as seen from the core.  In distilled terms, `smile` asks how does the core behave when the SoC behaves like X.
+
+Conversely, `smicro` is meant to check how those components actually work and interact with each other and with the core.  In distilled terms, `smicro` asks how does the SoC behave when clients behave like Y.
+
+`smicro` includes a more detailed DRAM model, a memory controller that implements a simple protocol, and a test suite that runs real instructions on the core and checks how the memory system responds.  It also includes a simple accelerator port and an example accelerator that performs an array sum by issuing memory requests through the memory controller.
+
+The test suite in `smicro` is a layered testing model that's split into two main categories: those at the hardware abstraction layer (HAL) that directly poke at the DRAM array, and those that run through the protocol and timing of the core and memory controller. The former are `hal_*` suites and the latter are `proto_*` suites.
+
+The `hal_*` tests poke at DRAM.  A sketch of the setup for these tests is shown below.  Note that there is no Sim::run() loop for these tests; they just execute once at t=0.
+```
+(tb_smicro.cpp)  hal_* suite
+    |
+    |  Dram HAL: read/write bytes at physical addresses
+    v
++-------------------+
+|      Dram         |
+|  (storage array)  |
+|  HAL: read/write  |
++-------------------+
+```
+Notes:
+- No Sim::run() loop required for the test itself (runs at t=0).
+- Addresses are PHYSICAL: dram_base + offset.
+- Core + MemCtrl may exist as objects, but they are not part of the test path.
+
+The `proto_*` tests drive MemCtrl timing/protocol over cycles.
+```
+(proto_core)   Driver = core     (MemCtrl path unused)
+
+Sim::run() cycles:
+    |
+    v
++-------------------+        MemoryPort::read32/write32      +-------------------+
+|   Tile1 (RV32)    |--------------------------------------->| Tile1Core::       |
+|   tick()          |                                        | DramMemoryPort    |
+|   executes instr  |<---------------------------------------| (adapter)         |
++-------------------+                                        +-------------------+
+                                                                     |
+                                                                     | Dram HAL read/write
+                                                                     v
+                                                             +-------------------+
+                                                             |       Dram        |
+                                                             | (storage array)   |
+                                                             +-------------------+
+
+```
+Meanwhile:
+- MemCtrl core ports are neutralized (bit-bucket / zero).
+- MemTester is disabled.
+- Accelerator may be attached, but *its memory traffic* (if any) is separate.
+
+
+```
+(proto_accel_sum*)   Driver = core
+- CPU memory: direct to Dram via MemoryPort adapter
+- Accel memory: MemCtrl path via AccelMemBridge
+
+A) CPU instruction execution + mailbox store
+-------------------------------------------
+Sim::run() cycles:
+    |
+    v
++-------------------+        MemoryPort::read32/write32      +-------------------+
+|   Tile1 (RV32)    |--------------------------------------->| Tile1Core::       |
+|   executes program|                                        | DramMemoryPort    |
+|   issues CUSTOM-0 |<---------------------------------------| (adapter)         |
++-------------------+                                        +-------------------+
+                                                                     |
+                                                                     | Dram HAL read/write
+                                                                     v
+                                                             +-------------------+
+                                                             |       Dram        |
+                                                             | (storage array)   |
+                                                             +-------------------+
+
+B) Accelerator execution + timed memory loads (sum array)
+---------------------------------------------------------
+Tile1 CUSTOM-0
+    |
+    v
++-------------------+      host API (start_load32/resp_*)    +-------------------+
+| AccelArraySumSoc  |--------------------------------------->|  AccelMemBridge   |
+| (AccelPort impl)  |<---------------------------------------|  (MemCtrl client) |
++-------------------+                                        +-------------------+
+                                                                     |
+                                                                     | MemReq/MemResp FIFOs
+                                                                     v
+                     +-------------------+   s_req/s_resp    +-------------------+
+                     |      MemCtrl      |------------------>|       Dram        |
+                     | (latency/backprs) |<------------------| (storage array)   |
+                     +-------------------+                   +-------------------+
+
+```
+Notes:
+- CPU passes rs1 = *CPU address* (e.g. 0x4000), rs2 = len.
+- AccelMemBridge adds addr_base_ (dram_base) to form physical addresses for MemCtrl.
+- Mailbox is written by the CPU program (not by the accel).
+- Suites:
+  - altaddr: same but array at 0x6000 to prove translation isn’t hard-coded.
+  - badarg: misaligned rs1 => returns ACCEL_E_BADARG to mailbox.
+  - unsupported: funct3!=0 => returns ACCEL_E_UNSUPPORTED to mailbox.
+  - twice: two CUSTOM-0 ops back-to-back, results to mailbox0+mailbox1.
+
+
 ## Components and Roles (smicro + smile)
 
 - `Tile1` (in `smile/`):
@@ -32,6 +136,11 @@ title: smicro
 - `MemCtrl`:
   - Speaks `MemReq/MemResp` on the core side and `MemReq/MemResp` on the DRAM side.
   - Only in the path for `proto_*` suites that use the tester or (later) core via `m_req/m_resp`.
+
+- `AccelMemBridge`:
+  - A tiny MemCtrl client shim for accelerators
+  - host facing: `start_load32()/start_store32()` (among others)
+  - MemCtrl facing: `MemReq/MemResp` FIFOs
 
 - `RvCore`:
   - A tiny FSM that **only** exists to exercise `MemCtrl` protocol (store then load).
