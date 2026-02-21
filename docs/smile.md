@@ -194,6 +194,7 @@ If `-prog` is provided, it loads that flat binary and runs it. If `-prog` is emp
 | `-mem_model=timed\|ideal` | `timed` | Tile1 memory model selection. |
 | `-accel=none\|demo_add`<br>`\|array_sum`<br>`\|array_sum_mc` | `array_sum` | Accelerator attached to CUSTOM-0. |
 | `-suite=proto_accel_sum`<br>`\|proto_accel_sum_altaddr`<br>`\|proto_accel_sum_badarg`<br>`\|proto_accel_sum_unsupported`<br>`\|proto_accel_sum_twice` | `proto_accel_sum` | Built-in injected test suite used only when `-prog` is empty. |
+| `-selfcheck=<0/1>` | `0` | Run built-in regression matrix across accel/suite/memory latency; exits nonzero on failure. |
 | `-steps=<n>` | `0` | Auto-run for `n` cycles; `<=0` enters interactive debugger REPL. |
 | `-sw_threads=<1|2>` | `1` | Number of software thread contexts scheduled by the debugger. |
 | `-ignore_bpfile=<0/1>` | `0` | Do not load `.smile_dbg` breakpoints on startup. |
@@ -227,6 +228,11 @@ Recent validated proto runs:
 ./build/smile/tb_tile1 -accel=array_sum_mc -mem_latency=5 -suite=proto_accel_sum_twice -steps=800
 ./build/smile/tb_tile1 -accel=array_sum_mc -mem_latency=5 -suite=proto_accel_sum_badarg -steps=200
 ./build/smile/tb_tile1 -accel=array_sum_mc -mem_latency=5 -suite=proto_accel_sum_unsupported -steps=200
+```
+
+Run the built-in regression matrix:
+```bash
+./build/smile/tb_tile1 -selfcheck=1
 ```
 
 ### Run External Program (`-prog`)
