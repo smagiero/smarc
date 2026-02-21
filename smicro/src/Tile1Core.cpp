@@ -65,15 +65,14 @@ private:
   uint32_t resp_data_ = 0;
 };
 
-
 Tile1Core::Tile1Core(std::string name, IMPL_CTOR) // Tile1Core constructor implementation
-  : tile_("tile1")  // Tile1 has a convenience ctor taking just a name
+  : tile_("tile1")  // Tile1 has convenience ctor taking just a name
 {
   tile_.clk << clk; // connect Tile1's clock to Tile1Core wrapper clock
 }
 
 void Tile1Core::attach_dram(Dram* dram) { // to tell Tile1Core which DRAM instance to use, 
-  dram_ = dram;   // remembers which DRAM instance we're using
+  dram_ = dram; // remembers which DRAM instance we're using (i.e., save the pointer)
 
   // Clean up any existing adapter
   if (dram_port_) {

@@ -1,13 +1,17 @@
 // **********************************************************************
 // smicro/src/SoC.hpp
 // **********************************************************************
-// S Magierowski Aug 16 2025
+// Sebastian Claudiusz Magierowski Aug 16 2025
 /*
+The top-level system wiring.
+
 ------- RVCore ---------+   +-------------- MemCtrl ---------------+   +--- Dram ---
  update_req() ->  m_req |==>| in_core_req   update_issue()   s_req |==>| s_req 
                         |   |                                      |   |       
 update_resp() <- m_resp |<==| out_core_resp update_retire() s_resp |<==| s_resp
 ------------------------+   +--------------------------------------+   +------------
+
+
 */
 #pragma once
 
@@ -36,7 +40,7 @@ class SoC : public Component {
 
 public:
   SoC(AttachMode mode, bool use_test_driver, COMPONENT_CTOR); // constructor with configurable mode
-  ~SoC() override;                      // destructor
+  ~SoC() override;                                            // destructor
 
   // External interface ports
   FifoOutput(AccelCmd, accel_cmd_out); // two external
@@ -47,26 +51,25 @@ public:
 
   void update();
   void reset();
+  
   // TB hooks
-  // TB hook: set MemCtrl latency in cycles
-  void set_mem_latency(int v) { if (mem_) mem_->set_latency(v); }
-  // Back-compat alias
-  void set_dram_latency(int v) { set_mem_latency(v); }
-  // TB hook: enable/disable posted write acks
-  void set_posted_writes(bool en) { if (mem_) mem_->set_posted_writes(en); }
+  void set_mem_latency(int v) { if (mem_) mem_->set_latency(v); }            // set MemCtrl latency in cycles
+  void set_dram_latency(int v) { set_mem_latency(v); }                       // back-compat alias
+  void set_posted_writes(bool en) { if (mem_) mem_->set_posted_writes(en); } // enable/disable posted write acks
+
   void attach_accelerator(AccelPort* accel);
 
   // Submodules (owned by SoC)
   // RvCore  *core_ = nullptr;
-  Tile1Core *core_ = nullptr;
-  AccelMemBridge *ab_ = nullptr;
+  Tile1Core *core_             = nullptr;
+  AccelMemBridge *ab_          = nullptr;
   AccelArraySumSoc *array_sum_ = nullptr;
-  MemTester *tester_ = nullptr;
-  L1      *l1_   = nullptr;
-  L2      *l2_   = nullptr;
-  Dram    *dram_ = nullptr;
-  MemCtrl *mem_  = nullptr;
-  NnAccel *accel_= nullptr;
+  MemTester *tester_           = nullptr;
+  L1      *l1_                 = nullptr;
+  L2      *l2_                 = nullptr;
+  Dram    *dram_               = nullptr;
+  MemCtrl *mem_                = nullptr;
+  NnAccel *accel_              = nullptr;
 
 private:
   AttachMode mode_;

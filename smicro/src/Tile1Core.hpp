@@ -5,24 +5,14 @@
 /*
 Tile1Core: minimal wrapper to host Tile1 inside smicro ecosystem.
 
-          (call graph / interfaces)
-
-           Tile1 (CPU)
-               |
-               |  MemoryPort::read32/write32
-               v
-   DramMemoryPort (adapter, lives *inside* Tile1Core)
-               |
-               |  Dram::read/write (addr = base + PC)
-               v
-        Dram (smicro DRAM)
-
-          Tile1Core (wrapper component)
-          +---------------------------------+
-          |  Tile1 tile_;                   |
-          |  DramMemoryPort* dram_port_;    |
-          |  Dram* dram_;                   |
-          +---------------------------------+
++--------------------------Tile1Core-------------------------+
+|          tile_                         dram_port_          |             dram_
+| +--------Tile1---------+      +------DramMemoryPort------+ |    +--------Dram--------+
+| | mem_port_->read32()  |<-----| read32(addr)->data  read |<-----| read(phys,&dst,n)  |
+| | mem_port_->write32() |----->| write32(addr,data)  write|----->| write(phys,&src,n) |
+| +----------------------+      +--------------------------+ |    +--------------------+  
+|                 MemoryPort::read32/write32                 | Dram::read/write
++------------------------------------------------------------+
 */
 #pragma once
 #include <cascade/Cascade.hpp>
@@ -35,8 +25,10 @@ class AccelPort;
 
 class Tile1Core : public Component {
   DECLARE_COMPONENT(Tile1Core);
+
 public:
   Tile1Core(std::string name, COMPONENT_CTOR);
+
   // -----------------------------
   // Interface ports
   // -----------------------------

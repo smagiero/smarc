@@ -1,11 +1,11 @@
 // **********************************************************************
 // smicro/src/tb_smicro.cpp
 // **********************************************************************
-// S Magierowski Aug 16 2025
+// Sebastian Claudiusz Magierowski Aug 16 2025
 /*
-SoC test harness with a single-switch suite to avoid ambiguity.
+The main SoC testbench/executable that parses -suite= and instantiates the SoC.
 Suites: 
-hal_* run only DRAM HAL at t=0 (no driver traffic). 
+hal_*   run only DRAM HAL at t=0 (no driver traffic). 
 proto_* run protocol timing via core or tester.
 proto_* notes:
 proto_accel_sum_altaddr:     same test as proto_accel_sum but with alt addr mapping to verify addr translation in accelerator memory bridge (AccelMemBridge) and its interaction with DRAM base address.

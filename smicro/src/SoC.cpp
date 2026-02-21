@@ -23,9 +23,9 @@ Smoke-test topologies (no caches; accel off)
          ------
 
     - MemCtrl core-side ports are neutralized:
-        core.m_req  -> bit bucket
-        core.m_resp <- 0
-        mem.in_core_req <- 0
+        core.m_req        -> bit bucket
+        core.m_resp       <- 0
+        mem.in_core_req   <- 0
         mem.out_core_resp -> bit bucket
     - MemTester is instantiated but not used.
 
@@ -64,15 +64,15 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
   g_soc = this;
   // ---- Allocate blocks ----
   // core_   = new RvCore("core");
-  core_   = new Tile1Core("core");    // Tile1Core: minimal wrapper to host Tile1 in smicro
-  ab_     = new AccelMemBridge("ab"); // bridge between accelerator and MemCtrl (implements MemReq/MemResp ifc on one side, and a custom accelerator-friendly ifc on the other)
+  core_      = new Tile1Core("core");     // Tile1Core: minimal wrapper to host Tile1 in smicro
+  ab_        = new AccelMemBridge("ab");  // bridge between accel & MemCtrl (implements MemReq/MemResp ifc on one side, and custom accel-friendly ifc on the other)
   array_sum_ = new AccelArraySumSoc(*ab_);
-  tester_ = new MemTester("tester");
-  l1_     = new L1("l1");
-  l2_     = new L2("l2");
-  dram_   = new Dram("dram", /*latency cycles*/ 0);
-  mem_    = new MemCtrl("mem");
-  accel_  = new NnAccel("accel", mode);
+  tester_    = new MemTester("tester");
+  l1_        = new L1("l1");
+  l2_        = new L2("l2");
+  dram_      = new Dram("dram", /*latency cycles*/ 0);
+  mem_       = new MemCtrl("mem");
+  accel_     = new NnAccel("accel", mode);
   ab_->set_addr_base(dram_->get_base());
 
   // ---- Clocking ----
@@ -121,8 +121,8 @@ SoC::SoC(AttachMode mode, bool use_test_driver, IMPL_CTOR)
     core_->m_req.sendToBitBucket();        //   core -> bucket
     core_->m_resp.wireToZero();            //   core <- 0
     // Bridge -> MemCtrl (accelerator memory bridge is the active MemCtrl client)
-    mem_->in_core_req   << ab_->m_req;
-    ab_->m_resp         << mem_->out_core_resp;
+    mem_->in_core_req << ab_->m_req;
+    ab_->m_resp       << mem_->out_core_resp;
   }
 
   // MemCtrl <-> DRAM (DRAM is zero-latency storage) 

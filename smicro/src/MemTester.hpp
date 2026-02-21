@@ -1,6 +1,7 @@
 // **********************************************************************
 // smicro/src/MemTester.hpp
 // **********************************************************************
+// Sebastian Claudiusz Magierowski Aug 27 2025
 
 #pragma once
 #include <cascade/Cascade.hpp>
