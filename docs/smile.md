@@ -241,13 +241,23 @@ Run the built-in regression matrix (non-interactive). It returns exit code `0` w
 
 Build a flat binary and run it:
 ```bash
-cd smile/progs
-riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 -nostartfiles -nostdlib -T link_rv32.ld core/smurf.c -o prog.elf
+smarc $ cd smile/progs
+smarc/smile/progs $ riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 -nostartfiles -nostdlib -T link_rv32.ld core/smurf.c -o prog.elf
+smarc/smile/progs $ riscv64-unknown-elf-objcopy -O binary prog.elf prog.bin
+smarc/smile/progs $ cd ../..
+smarc $ ./build/smile/tb_tile1 -prog=smile/progs/prog.bin -load_addr=0x0 -start_pc=0x0 -steps=100 -sw_threads=1
+```
 
-riscv64-unknown-elf-objcopy -O binary prog.elf prog.bin
+Build and run the accelerator smoke test (`accel_sum_test`) via `smile_progs`:
+```bash
+smarc $ cmake --build build --target smile_progs -j -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+smarc $ ./build/smile/tb_tile1 -prog=smile/progs/accel_sum_test.bin -accel=array_sum_mc -mem_latency=5 -steps=5000
+smarc $ ./build/smile/tb_tile1 -prog=smile/progs/accel_sum_test.bin -accel=array_sum -steps=2000
+```
 
-cd ../..
-./build/smile/tb_tile1 -prog=smile/progs/prog.bin -load_addr=0x0 -start_pc=0x0 -steps=100 -sw_threads=1
+Expected for both runs:
+```text
+[EXIT] Program exited with code 136
 ```
 
 ### Interactive Debugger REPL
