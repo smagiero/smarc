@@ -230,7 +230,9 @@ Recent validated proto runs:
 ./build/smile/tb_tile1 -accel=array_sum_mc -mem_latency=5 -suite=proto_accel_sum_unsupported -steps=200
 ```
 
-Run the built-in regression matrix:
+### Selfcheck Regression (`-selfcheck`)
+
+Run the built-in regression matrix (non-interactive). It returns exit code `0` when all cases pass, otherwise `1`:
 ```bash
 ./build/smile/tb_tile1 -selfcheck=1
 ```
