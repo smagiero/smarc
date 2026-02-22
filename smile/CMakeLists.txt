@@ -98,6 +98,7 @@ if (SMILE_RISCV_GCC AND SMILE_RISCV_OBJCOPY)
   add_smile_prog(mem_stress core/mem_stress.c)
   add_smile_prog(hmm_step sci/hmm_step.c)
   add_smile_prog(accel_sum_test sci/accel_sum_test.c)
+  add_smile_prog(accel_sum_unsupported sci/accel_sum_unsupported.c)
 
   get_property(SMILE_PROG_BINS GLOBAL PROPERTY SMILE_PROG_BINS)
   # custom target smile_progs that does bare metal program build
