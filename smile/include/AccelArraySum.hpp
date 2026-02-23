@@ -3,8 +3,9 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 22 2025
 /*
-Memory-aware AccelPort implementation that interprets CUSTOM-0 as 
-“sum rs2 32-bit words starting at rs1” and responds in the same cycle.
+Memory-aware AccelPort implementation that interprets CUSTOM-0 as:
+- funct3=0: “sum rs2 32-bit words starting at rs1” and respond in the same cycle.
+For v1 contract compliance it returns ACCEL_E_UNSUPPORTED for funct3!=0 and ACCEL_E_BADARG for misaligned rs1.
 It logs each request, walks DRAM synchronously via the memory hooks, 
 and exposes the blocking load/store API so future accelerators can reuse it
 */
