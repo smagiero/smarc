@@ -19,9 +19,14 @@ Alleluia.  Sequentia.
 
 # Intro
 
-`smarc` is where I prototype RISC-V cores + memory system + accelerators for future **sequencing SoCs**.  Sequence what?  I keep an open-mind, but workloads of interest include molecules (sequence DNA), pictures (sequence senor streams), path planning (sequence movement).  The project consists of two main parts.  `smile` checks what sequencing code does on the core being targeted for silicon and `smicro` checks how efficiently the hardware architecture executes the sequence-handling workloads programs.  
+`smarc` is a simulation-first RISC-V architecture workspace for developing and validating sequencing-oriented SoC designs.
 
-Thus, `smile` is meant to answer questions relevant to instruction semantics, traps/debugger, core stall behaviour, or core-visible performance counters.  And `smicro` is meant to answer questions relevant to arbitration, multi-client contention, cache insertion, memory control or SoC topology.  In short, `smile` and its tests are core-centric while `smicro` and its tests are fabric-centric.
+The current focus is workloads where ordered data movement dominates: molecular data (for miniature DNA sequencing machines), sensor and image streams (for environmental observations), and path-planning traces (for autonomous vehicles). The project is split into two complementary environments:
+
+- `smile` validates core behavior: instruction semantics, traps/debugger flow, stall behavior, and core-visible counters.
+- `smicro` validates system behavior: memory arbitration, contention, cache and memory-control policy, and SoC topology.
+
+In short: `smile` is core-centric, and `smicro` is fabric-centric.
 
 ## Packages
 
