@@ -1,4 +1,4 @@
-# smystolic
+# smesh
 
 Cascade-native systolic array experiments for smarc.
 
