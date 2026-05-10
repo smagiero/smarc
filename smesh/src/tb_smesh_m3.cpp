@@ -3,12 +3,10 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski May 10 2026
 /*
-M3 topology scaffold: SmeshCommandDriver -> SmeshShell -> MemCtrl -> Dram.
+M3 active memory path: SmeshCommandDriver -> SmeshShell -> MemCtrl -> Dram.
 
-At this checkpoint SmeshShell still executes mvin/mvout through its functional
-internal SmeshMemory. The MemCtrl/Dram path is wired but not yet used by
-SmeshShell command execution. The next M3 step is to move mvin/mvout sequencing
-onto SmeshShell::m_req/m_resp.
+SmeshShell sequences mvin/mvout over its native MemReq/MemResp master ports.
+Preload and compute remain functional inside SmeshDevice.
 */
 #include <cascade/Cascade.hpp>
 #include <descore/Parameter.hpp>
@@ -28,15 +26,15 @@ onto SmeshShell::m_req/m_resp.
 using MatrixElem = std::array<std::array<smesh::Elem, smesh::kDim>, smesh::kDim>;
 using MatrixAcc = std::array<std::array<smesh::Acc, smesh::kDim>, smesh::kDim>;
 
-IntParameter(steps, 20, "Batch steps for tb_smesh_m3");
+IntParameter(steps, 1000, "Batch steps for tb_smesh_m3");
 IntParameter(mem_latency, 2, "MemCtrl latency for tb_smesh_m3 topology");
-BoolParameter(posted_writes, true, "Enable posted write ACKs in MemCtrl");
+BoolParameter(posted_writes, false, "Enable posted write ACKs in MemCtrl");
 
 namespace {
 
-constexpr std::uint64_t kAAddr = 0x1000;
-constexpr std::uint64_t kBAddr = 0x2000;
-constexpr std::uint64_t kCAddr = 0x3000;
+constexpr std::uint64_t kAAddr = 0x80001000;
+constexpr std::uint64_t kBAddr = 0x80002000;
+constexpr std::uint64_t kCAddr = 0x80003000;
 constexpr std::size_t kBStridePadBytes = 3;
 
 MatrixAcc referenceMatmul(const MatrixElem& a, const MatrixElem& b) {
@@ -53,25 +51,27 @@ MatrixAcc referenceMatmul(const MatrixElem& a, const MatrixElem& b) {
   return out;
 }
 
-void writeElemMatrix(smesh::SmeshMemory& mem,
+void writeElemMatrix(smem::Dram& dram,
                      std::uint64_t base,
                      std::uint32_t stride,
                      const MatrixElem& matrix) {
   for (std::size_t r = 0; r < smesh::kDim; ++r) {
     for (std::size_t c = 0; c < smesh::kDim; ++c) {
-      mem.writeElem(base + r * stride + c, matrix[r][c]);
+      const auto value = matrix[r][c];
+      dram.write(base + r * stride + c, &value, sizeof(value));
     }
   }
 }
 
-bool checkAccMatrix(const smesh::SmeshMemory& mem,
+bool checkAccMatrix(smem::Dram& dram,
                     std::uint64_t base,
                     const MatrixAcc& expected) {
   bool ok = true;
   const std::uint32_t stride = smesh::kDim * sizeof(smesh::Acc);
   for (std::size_t r = 0; r < smesh::kDim; ++r) {
     for (std::size_t c = 0; c < smesh::kDim; ++c) {
-      const auto got = mem.readAcc(base + r * stride + c * sizeof(smesh::Acc));
+      smesh::Acc got = 0;
+      dram.read(base + r * stride + c * sizeof(smesh::Acc), &got, sizeof(got));
       if (got != expected[r][c]) {
         std::printf("MISMATCH r=%zu c=%zu got=%d expected=%d\n",
                     r, c, got, expected[r][c]);
@@ -131,13 +131,14 @@ bool runCase(const char* name,
 
   mem.in_core_req << shell.m_req;
   shell.m_resp << mem.out_core_resp;
-  mem.in_core_req.setDelay(1);
+  mem.in_core_req.setDelay(1); // 1-cycle delay, otherwise you have 0-delay comb. loop through shell, MemCtrl, and DRAM
 
   dram.s_req << mem.s_req;
   mem.s_resp << dram.s_resp;
 
   mem.set_latency(latency);
   mem.set_posted_writes(posted);
+  shell.setExternalMemory(true);
 
   Clock clk;
   shell.clk << clk;
@@ -148,11 +149,10 @@ bool runCase(const char* name,
   Sim::init();
   Sim::reset();
 
-  auto& functional_mem = shell.memory();
   constexpr std::uint32_t elem_stride = smesh::kDim * sizeof(smesh::Elem);
   constexpr std::uint32_t b_elem_stride = elem_stride + kBStridePadBytes;
-  writeElemMatrix(functional_mem, kAAddr, elem_stride, a);
-  writeElemMatrix(functional_mem, kBAddr, b_elem_stride, b);
+  writeElemMatrix(dram, kAAddr, elem_stride, a);
+  writeElemMatrix(dram, kBAddr, b_elem_stride, b);
   driver.setScript(makeScript());
 
   for (int i = 0; i < max_steps && !driver.done(); ++i) {
@@ -161,7 +161,7 @@ bool runCase(const char* name,
 
   const auto expected = referenceMatmul(a, b);
   const bool ok = driver.done() && !driver.failed() &&
-                  checkAccMatrix(shell.memory(), kCAddr, expected);
+                  checkAccMatrix(dram, kCAddr, expected);
   std::printf("[SMESH_M3] %s %s\n", ok ? "PASS" : "FAIL", name);
   return ok;
 }
