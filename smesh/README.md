@@ -30,7 +30,7 @@ Build only the M2 Cascade command-shell testbench:
 ```bash
 cmake --build build --target tb_smesh_m2 -j
 ```
-Build only the M3 memory-topology scaffold:
+Build only the M3 memory-backed shell testbench:
 ```bash
 cmake --build build --target tb_smesh_m3 -j
 ```
@@ -81,7 +81,7 @@ The M2 testbench sends the same command stream through Cascade FIFO ports into a
 small shell component around `SmeshDevice`. Memory is still functional and owned
 by the shell; explicit memory request/response ports are deferred to M3.
 
-Run the M3 memory-topology scaffold:
+Run the M3 memory-backed shell testbench:
 ```bash
 ./build/smesh/tb_smesh_m3
 ```
@@ -90,7 +90,7 @@ Expected output:
 [SMESH_M3] PASS identity
 [SMESH_M3] PASS matmul
 ```
-The M3 scaffold wires `SmeshShell` to `smem::MemCtrl` and `smem::Dram` through
-native `MemReq`/`MemResp` FIFO ports. At this checkpoint, `SmeshShell` still
-executes `mvin`/`mvout` through its functional internal memory; moving those
-commands onto the memory ports is the next M3 step.
+The M3 testbench wires `SmeshShell` to `smem::MemCtrl` and `smem::Dram` through
+native `MemReq`/`MemResp` FIFO ports. `mvin` and `mvout` now sequence element
+loads and accumulator stores through that memory path; `preload` and
+`compute_preloaded` still execute functionally inside `SmeshDevice`.

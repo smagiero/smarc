@@ -191,6 +191,14 @@ void SmeshDevice::mvout(SmeshMemory& mem,
   }
 }
 
+void SmeshDevice::writeSpadElem(std::uint32_t row, std::uint32_t col, Elem value) {
+  state_.spad.at(row).at(col) = value;
+}
+
+Acc SmeshDevice::readAccElem(std::uint32_t row, std::uint32_t col) const {
+  return state_.accumulator.at(row).at(col);
+}
+
 // Can matrix tile of size rows x cols fit in SP starting at row?
 void SmeshDevice::checkSpadRange(std::uint32_t row, MatrixShape shape) {
   checkDimShape(shape);

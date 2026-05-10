@@ -12,6 +12,8 @@
 #include "SmeshPorts.hpp"
 #include "smem/MemTypes.hpp"
 
+#include <cstdint>
+
 namespace smesh {
 
 class SmeshShell : public Component {
@@ -30,13 +32,44 @@ class SmeshShell : public Component {
 
   SmeshMemory& memory() { return memory_; }
   const SmeshMemory& memory() const { return memory_; }
+  void setExternalMemory(bool enabled) { external_memory_ = enabled; }
 
   void update();
   void reset();
 
  private:
+  enum class State {
+    Idle,
+    MvinIssue,
+    MvinWait,
+    MvoutIssue,
+    MvoutWait,
+  };
+
+  struct ActiveMemCmd {
+    SmeshFunct funct = SmeshFunct::Flush;
+    std::uint64_t dram_addr = 0;
+    std::uint32_t local_row = 0;
+    MatrixShape shape{};
+    std::uint32_t stride_bytes = 0;
+    std::uint32_t r = 0;
+    std::uint32_t c = 0;
+    std::uint16_t next_id = 0;
+  };
+
+  void startExternalMvin(SmeshFunct funct, std::uint64_t rs1, std::uint64_t rs2);
+  void startExternalMvout(std::uint64_t rs1, std::uint64_t rs2);
+  void updateExternalMvinIssue();
+  void updateExternalMvinWait();
+  void updateExternalMvoutIssue();
+  void updateExternalMvoutWait();
+  void finishActive(std::uint8_t status);
+
   SmeshDevice device_;
   SmeshMemory memory_;
+  bool external_memory_ = false;
+  State state_ = State::Idle;
+  ActiveMemCmd active_{};
 };
 
 } // namespace smesh

@@ -47,6 +47,8 @@ class SmeshDevice {
              std::uint32_t stride_bytes) const;
 
   const SmeshState& state() const { return state_; }
+  void writeSpadElem(std::uint32_t row, std::uint32_t col, Elem value); // to mvin data from mem through SmeshShell
+  Acc readAccElem(std::uint32_t row, std::uint32_t col) const; // to mvout data to mem through SmeshShell
 
  private:
   static void checkSpadRange(std::uint32_t row, MatrixShape shape); // starting row, and shape

@@ -10,7 +10,7 @@ Does three simple things each cycle.
 3) Take at most one new STORE or LOAD request from core. 
 
 Some details:
-• core can make either STORE or LOAD reaquest (obviously)
+• core can make either STORE or LOAD request (obviously)
 • STOREs can be "posted" or "non-posted"
   - posted STORE means MemCtrl give core ACK as soon as it queues it up to send to DRAM
   - non-posted STORE means core gets ACK only afer DRAM gets store
@@ -51,8 +51,8 @@ void MemCtrl::update_issue() {
     if (out_core_resp.full()) return; // avoid pop if we might need to ACK a store but cannot (being convervative)
     auto r = in_core_req.pop();       // take REQ from core
     if (r.write) {                    // *** if core's REQ is STORE ***
-      assert_always(((u64)r.size == 8) && (((u64)r.addr & 7ull) == 0ull), "MemCtrl posted write: only 8-byte aligned ops supported for now"); // Guard
       if (posted_writes_) {                                       // if posted STORE
+        assert_always(((u64)r.size == 8) && (((u64)r.addr & 7ull) == 0ull), "MemCtrl posted write: only 8-byte aligned ops supported for now"); // Guard
         MemResp ack{}; ack.rdata = 0; ack.id = r.id; ack.err = 0;   // build ACK
         out_core_resp.push(ack);                                    // send ACK to core now
       }
